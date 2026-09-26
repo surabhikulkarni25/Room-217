@@ -19,6 +19,15 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
+export function resumeAudioContext(): void {
+  try {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+  } catch (_) {}
+}
+
 /**
  * Low wood creak / groan sound.
  */
@@ -438,6 +447,10 @@ export function playFinalImpactSound(): void {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
     const t = ctx.currentTime;
 
     // Sub-bass percussive punch
@@ -774,20 +787,28 @@ export function playBasementWhisperScratchSound(): void {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    let executed = false;
     const execute = () => {
+      if (executed) return;
+      executed = true;
+
       try {
-        const t = ctx.currentTime;
+        const t = Math.max(ctx.currentTime, 0.02);
         const duration = 3.6;
 
-        // Dedicated master gain directly to destination
+        // Dedicated master gain connected directly to audio destination (independent of ambient bed)
         const masterGain = ctx.createGain();
         masterGain.gain.setValueAtTime(0.001, t);
-        masterGain.gain.linearRampToValueAtTime(1.0, t + 0.25);
-        masterGain.gain.setValueAtTime(1.0, t + 2.6);
+        masterGain.gain.linearRampToValueAtTime(1.0, t + 0.15);
+        masterGain.gain.setValueAtTime(1.0, t + 2.7);
         masterGain.gain.linearRampToValueAtTime(0.001, t + duration);
         masterGain.connect(ctx.destination);
 
-        // 1. Indistinct whispering: modulated formant noise resembling vocal breath
+        // 1. Indistinct whispering: dual formant filtered noise + breath resonance
         const bufferSize = Math.floor(ctx.sampleRate * duration);
         const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const output = noiseBuffer.getChannelData(0);
@@ -798,37 +819,45 @@ export function playBasementWhisperScratchSound(): void {
         const whisperSource = ctx.createBufferSource();
         whisperSource.buffer = noiseBuffer;
 
-        const whisperFilter = ctx.createBiquadFilter();
-        whisperFilter.type = 'bandpass';
-        whisperFilter.frequency.setValueAtTime(900, t);
-        whisperFilter.frequency.exponentialRampToValueAtTime(1400, t + 1.2);
-        whisperFilter.frequency.exponentialRampToValueAtTime(750, t + 2.2);
-        whisperFilter.frequency.exponentialRampToValueAtTime(1100, t + duration);
-        whisperFilter.Q.setValueAtTime(1.8, t); // Wider bandwidth so it stays crisp and audible
+        // Primary formant filter (throat whisper cavity: 950Hz - 1350Hz)
+        const filter1 = ctx.createBiquadFilter();
+        filter1.type = 'bandpass';
+        filter1.frequency.setValueAtTime(950, t);
+        filter1.frequency.exponentialRampToValueAtTime(1350, t + 1.2);
+        filter1.frequency.exponentialRampToValueAtTime(850, t + 2.4);
+        filter1.Q.setValueAtTime(2.0, t);
+
+        // Secondary formant filter (sibilant whispering hiss: 2400Hz)
+        const filter2 = ctx.createBiquadFilter();
+        filter2.type = 'bandpass';
+        filter2.frequency.setValueAtTime(2400, t);
+        filter2.Q.setValueAtTime(3.0, t);
 
         const whisperGain = ctx.createGain();
         whisperGain.gain.setValueAtTime(0.001, t);
-        whisperGain.gain.linearRampToValueAtTime(0.38, t + 0.4);
-        whisperGain.gain.linearRampToValueAtTime(0.32, t + 1.8);
+        whisperGain.gain.linearRampToValueAtTime(0.48, t + 0.2);
+        whisperGain.gain.linearRampToValueAtTime(0.40, t + 1.8);
         whisperGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
-        whisperSource.connect(whisperFilter);
-        whisperFilter.connect(whisperGain);
+        whisperSource.connect(filter1);
+        whisperSource.connect(filter2);
+        filter1.connect(whisperGain);
+        filter2.connect(whisperGain);
         whisperGain.connect(masterGain);
         whisperSource.start(t);
-        whisperSource.stop(t + duration + 0.1);
+        whisperSource.stop(t + duration + 0.05);
 
-        // 2. Slow scratching: dry fingernails scraping stone/wood in distinct abrasive scraping bursts
+        // 2. Slow scratching: dry fingernails scraping stone/wood with 3 distinct bursts starting immediately
         const scratchBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const sData = scratchBuffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
           const timeSec = i / ctx.sampleRate;
-          // Burst 1 at 0.7s - 1.3s, Burst 2 at 1.8s - 2.5s
-          const env1 = Math.max(0, 1 - Math.abs(timeSec - 1.0) / 0.32);
-          const env2 = Math.max(0, 1 - Math.abs(timeSec - 2.15) / 0.35);
-          const env = Math.max(env1, env2);
-          // Gritty noise envelope without contradictory lowpass
-          sData[i] = (Math.random() * 2 - 1) * env * (Math.random() > 0.3 ? 1 : 0.25);
+          // Burst 1 at 0.15s - 0.75s, Burst 2 at 1.1s - 1.7s, Burst 3 at 2.1s - 2.8s
+          const env1 = Math.max(0, 1 - Math.abs(timeSec - 0.45) / 0.3);
+          const env2 = Math.max(0, 1 - Math.abs(timeSec - 1.4) / 0.3);
+          const env3 = Math.max(0, 1 - Math.abs(timeSec - 2.45) / 0.35);
+          const env = Math.max(env1, env2, env3);
+          sData[i] = (Math.random() * 2 - 1) * env * (Math.random() > 0.25 ? 1 : 0.3);
         }
 
         const scratchSource = ctx.createBufferSource();
@@ -836,27 +865,27 @@ export function playBasementWhisperScratchSound(): void {
 
         const scratchFilter = ctx.createBiquadFilter();
         scratchFilter.type = 'bandpass';
-        scratchFilter.frequency.setValueAtTime(2200, t);
-        scratchFilter.Q.setValueAtTime(1.4, t);
+        scratchFilter.frequency.setValueAtTime(2300, t);
+        scratchFilter.Q.setValueAtTime(1.5, t);
 
         const scratchGain = ctx.createGain();
         scratchGain.gain.setValueAtTime(0.001, t);
-        scratchGain.gain.linearRampToValueAtTime(0.42, t + 0.6);
-        scratchGain.gain.linearRampToValueAtTime(0.38, t + 2.0);
+        scratchGain.gain.linearRampToValueAtTime(0.55, t + 0.15);
+        scratchGain.gain.linearRampToValueAtTime(0.48, t + 1.4);
         scratchGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
         scratchSource.connect(scratchFilter);
         scratchFilter.connect(scratchGain);
         scratchGain.connect(masterGain);
         scratchSource.start(t);
-        scratchSource.stop(t + duration + 0.1);
+        scratchSource.stop(t + duration + 0.05);
       } catch (e) {
         console.warn('Whisper scratch playback error:', e);
       }
     };
 
     if (ctx.state === 'suspended') {
-      ctx.resume().then(execute).catch(() => {});
+      ctx.resume().then(execute).catch(execute);
     } else {
       execute();
     }
@@ -1091,6 +1120,141 @@ export function duckAmbientDroneBed(ducked: boolean): void {
   } catch (_) {}
 }
 
+export interface ApproachingHeartbeatController {
+  setIntensity: (progress: number) => void;
+  stop: () => void;
+}
 
+let activeHeartbeatController: ApproachingHeartbeatController | null = null;
 
+/**
+ * Procedural Heartbeat Sound Synthesizer:
+ * Used exclusively for the final Backyard Shadow Figure approach sequence.
+ * Starts quiet and slow (~52 BPM), then accelerates and intensifies (~130 BPM, louder)
+ * as the Shadow Figure approaches the player.
+ * Immediately terminates cleanly on the second blackout.
+ */
+export function startApproachingHeartbeatSound(): ApproachingHeartbeatController {
+  if (activeHeartbeatController) {
+    activeHeartbeatController.stop();
+    activeHeartbeatController = null;
+  }
 
+  let intensity = 0.0; // 0.0 (far) to 1.0 (very close)
+  let isStopped = false;
+  let nextBeatTimeout: number | null = null;
+
+  const ctx = getAudioContext();
+  if (!ctx) {
+    return {
+      setIntensity: () => {},
+      stop: () => {},
+    };
+  }
+
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+
+  // Master gain for the heartbeat audio connected directly to destination
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0.001, ctx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.1);
+  masterGain.connect(ctx.destination);
+
+  const playPulse = (
+    freqStart: number,
+    freqEnd: number,
+    duration: number,
+    vol: number,
+    timeOffset: number
+  ) => {
+    if (isStopped || !ctx) return;
+    try {
+      const now = ctx.currentTime + timeOffset;
+
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freqStart, now);
+      osc.frequency.exponentialRampToValueAtTime(freqEnd, now + duration);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(105, now);
+      filter.Q.setValueAtTime(1.4, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    } catch (_) {}
+  };
+
+  const scheduleBeat = () => {
+    if (isStopped) return;
+
+    // Progression:
+    // SHADOW FIGURE FAR (intensity 0.0): quiet, slow heartbeat (~52 bpm, interval 1.15s, vol 0.10)
+    // SHADOW FIGURE CLOSER (intensity 0.5): moderate (~85 bpm, interval 0.70s, vol 0.22)
+    // SHADOW FIGURE VERY CLOSE (intensity 1.0): loudest / most intense (~130 bpm, interval 0.46s, vol 0.36)
+    const clamped = Math.max(0, Math.min(1, intensity));
+    const interval = 1.15 - clamped * 0.69; // 1.15s down to 0.46s
+    const vol = 0.10 + clamped * 0.26; // 0.10 up to 0.36
+
+    // S1 ("lub"): deeper, slightly longer pulse (52Hz -> 36Hz over 85ms)
+    playPulse(52, 36, 0.085, vol, 0);
+
+    // S2 ("dub"): slightly higher base pitch (64Hz -> 42Hz over 70ms), ~135ms later
+    const s2Offset = 0.135 - clamped * 0.025;
+    playPulse(64, 42, 0.07, vol * 0.85, s2Offset);
+
+    nextBeatTimeout = window.setTimeout(scheduleBeat, Math.round(interval * 1000));
+  };
+
+  scheduleBeat();
+
+  const controller: ApproachingHeartbeatController = {
+    setIntensity: (progress: number) => {
+      intensity = Math.max(0, Math.min(1, progress));
+    },
+    stop: () => {
+      if (isStopped) return;
+      isStopped = true;
+      if (nextBeatTimeout !== null) {
+        clearTimeout(nextBeatTimeout);
+        nextBeatTimeout = null;
+      }
+      try {
+        const stopTime = ctx.currentTime;
+        masterGain.gain.setValueAtTime(masterGain.gain.value, stopTime);
+        masterGain.gain.linearRampToValueAtTime(0.0001, stopTime + 0.04);
+        setTimeout(() => {
+          try {
+            masterGain.disconnect();
+          } catch (_) {}
+        }, 60);
+      } catch (_) {}
+      if (activeHeartbeatController === controller) {
+        activeHeartbeatController = null;
+      }
+    },
+  };
+
+  activeHeartbeatController = controller;
+  return controller;
+}
+
+export function stopApproachingHeartbeatSound(): void {
+  if (activeHeartbeatController) {
+    activeHeartbeatController.stop();
+    activeHeartbeatController = null;
+  }
+}

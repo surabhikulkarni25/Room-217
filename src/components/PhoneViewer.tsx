@@ -4,7 +4,9 @@ import {
   PHONE_NOTES,
   PHONE_AUDIO_MEMO,
 } from '../game/data/phoneData';
-import { playPhoneClickSound, playStaticBurst } from '../game/audio/minimalAudio';
+import {
+  playPhoneClickSound,
+} from '../game/audio/minimalAudio';
 
 interface PhoneViewerProps {
   onClose: () => void;
@@ -15,36 +17,12 @@ type PhoneTab = 'messages' | 'notes' | 'audio';
 export const PhoneViewer: React.FC<PhoneViewerProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<PhoneTab>('messages');
   const [isPlayingMemo, setIsPlayingMemo] = useState(false);
-  const isPlayingMemoRef = useRef(false);
-  isPlayingMemoRef.current = isPlayingMemo;
-
-  // Persistent reference to prevent garbage collection of active utterance
-  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const playTimeoutRef = useRef<number | null>(null);
-
-  // Pre-load voices on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.getVoices();
-      const handleVoicesChanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-      window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
-      return () => {
-        window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-      };
-    }
-  }, []);
 
   const stopMemoPlayback = useCallback(() => {
     if (playTimeoutRef.current !== null) {
       clearTimeout(playTimeoutRef.current);
       playTimeoutRef.current = null;
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      activeUtteranceRef.current = null;
-      (window as any).__activeVoiceUtterance = null;
     }
     setIsPlayingMemo(false);
   }, []);
@@ -55,119 +33,13 @@ export const PhoneViewer: React.FC<PhoneViewerProps> = ({ onClose }) => {
       return;
     }
 
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      console.warn('speechSynthesis not supported on this device.');
-      return;
-    }
-
-    // Cancel any stale speech and resume if the engine was paused
-    window.speechSynthesis.cancel();
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
+    playPhoneClickSound();
     setIsPlayingMemo(true);
 
-    // Natural speech segments separated by pause points / ellipses
-    const segments = [
-      "The draft isn't just under the floor. It's pulling from the wardrobe in the corner.",
-      "Behind the hanging coats, where the heavy wooden panel meets the back mirror... there's a recessed brass fixture tucked into the dark molding.",
-      "If the door ever locks from outside, look where the glass doesn't reflect.",
-    ];
-
-    let currentIdx = 0;
-
-    const playNextSegment = () => {
-      if (!isPlayingMemoRef.current) return;
-
-      if (currentIdx >= segments.length) {
-        playStaticBurst(0.35);
-        activeUtteranceRef.current = null;
-        (window as any).__activeVoiceUtterance = null;
-        setIsPlayingMemo(false);
-        return;
-      }
-
-      // Pre-segment static noise burst simulating tape corruption
-      playStaticBurst(0.24);
-
-      playTimeoutRef.current = window.setTimeout(() => {
-        if (!isPlayingMemoRef.current) return;
-
-        // Fetch voices dynamically at playtime
-        const availableVoices = window.speechSynthesis.getVoices();
-        const preferredVoice =
-          availableVoices.find(
-            (v) =>
-              v.lang.startsWith('en') &&
-              (v.name.includes('Natural') ||
-                v.name.includes('Google') ||
-                v.name.includes('Samantha') ||
-                v.name.includes('Daniel') ||
-                v.name.includes('English'))
-          ) ||
-          availableVoices.find((v) => v.lang.startsWith('en')) ||
-          availableVoices[0];
-
-        const utterance = new SpeechSynthesisUtterance(segments[currentIdx]);
-        utterance.volume = 1.0;
-        utterance.rate = 0.88;
-        utterance.pitch = 0.92;
-
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
-        }
-
-        // Store persistent reference on ref and window to prevent garbage collection
-        activeUtteranceRef.current = utterance;
-        (window as any).__activeVoiceUtterance = utterance;
-
-        utterance.onstart = () => {
-          if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          }
-        };
-
-        utterance.onend = () => {
-          currentIdx++;
-          playTimeoutRef.current = window.setTimeout(() => {
-            playNextSegment();
-          }, 180);
-        };
-
-        utterance.onerror = (event) => {
-          console.warn('SpeechSynthesis error:', event);
-          activeUtteranceRef.current = null;
-          (window as any).__activeVoiceUtterance = null;
-          setIsPlayingMemo(false);
-        };
-
-        // Resume engine right before speaking in case Chrome iframe suspended it
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-
-        window.speechSynthesis.speak(utterance);
-
-        // Verification check: ensure synthesizer actually began or is queued
-        setTimeout(() => {
-          if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          }
-          if (
-            !window.speechSynthesis.speaking &&
-            !window.speechSynthesis.pending &&
-            isPlayingMemoRef.current
-          ) {
-            console.warn(
-              'SpeechSynthesis neither speaking nor pending after speak(). Attempting resume fallback.'
-            );
-            window.speechSynthesis.resume();
-          }
-        }, 120);
-      }, 160);
-    };
-
-    playNextSegment();
+    // Auto-stop after display duration
+    playTimeoutRef.current = window.setTimeout(() => {
+      stopMemoPlayback();
+    }, 6000);
   };
 
   // Stop playback on tab switch or component unmount
@@ -340,7 +212,7 @@ export const PhoneViewer: React.FC<PhoneViewerProps> = ({ onClose }) => {
                           : 'bg-[#172024] border-[#27343a] text-[#cfd8dc]'
                       }`}
                     >
-                      {msg.text}
+                      {msg?.text ?? ''}
                     </div>
                   </div>
                 ))}

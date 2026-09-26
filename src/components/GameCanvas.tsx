@@ -20,6 +20,13 @@ import {
   playBasementWhisperScratchSound,
   ensureAmbientDroneBed,
   duckAmbientDroneBed,
+  updateBackyardProximityAudio,
+  stopBackyardProximityAudio,
+  startWindowRainSound,
+  resumeAudioContext,
+  startApproachingHeartbeatSound,
+  stopApproachingHeartbeatSound,
+  ApproachingHeartbeatController,
 } from '../game/audio/minimalAudio';
 import { DebugOverlay } from './DebugOverlay';
 import { DiaryViewer } from './DiaryViewer';
@@ -28,6 +35,7 @@ import { RegisterViewer } from './RegisterViewer';
 import { Room214KeypadModal } from './Room214KeypadModal';
 import { OpeningSequence } from './OpeningSequence';
 import { EndingSequence } from './EndingSequence';
+import { ShadowFigureFaceCloseUp } from './ShadowFigureFaceCloseUp';
 import { TouchControls } from './TouchControls';
 import { VisualInspectionView } from './VisualInspectionView';
 
@@ -69,7 +77,7 @@ export const GameCanvas: React.FC = () => {
   const isKeypadOpenRef = useRef(isKeypadOpen);
   isKeypadOpenRef.current = isKeypadOpen;
 
-  // Ephemeral Shadow Figure reference in the basement
+  // Ephemeral Shadow Figure reference in the basement or backyard
   const shadowFigureRef = useRef<{
     active: boolean;
     alpha: number;
@@ -77,6 +85,28 @@ export const GameCanvas: React.FC = () => {
     y: number;
     timer: number;
   } | null>(null);
+
+  // Dedicated heartbeat sound controller reference for the final ending approach
+  const heartbeatRef = useRef<ApproachingHeartbeatController | null>(null);
+
+  // Ending sequence Shadow Figure approach animation tracking
+  const endingApproachRef = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    targetX: number;
+    targetY: number;
+    startTime: number;
+    duration: number;
+  } | null>(null);
+
+  // Shadow Figure face close-up brief blackout state
+  const [showShadowFigureCloseUp, setShowShadowFigureCloseUp] = useState(false);
+  const showShadowFigureCloseUpRef = useRef(showShadowFigureCloseUp);
+  showShadowFigureCloseUpRef.current = showShadowFigureCloseUp;
+
+  // Backyard rain sound stop callback reference
+  const backyardRainStopRef = useRef<(() => void) | null>(null);
 
   // Debug overlay visibility & FPS
   const [showDebug, setShowDebug] = useState(false);
@@ -309,22 +339,90 @@ export const GameCanvas: React.FC = () => {
         return;
       }
 
-      // Final Ending trigger: ascending basement stairs after witnessing the shadow figure
-      if (
-        target.id === 'stairs_up' &&
-        gameStateRef.current.storyFlags.shadowFigureSeen &&
-        !gameStateRef.current.storyFlags.endingTriggered
-      ) {
+      // Structure interaction in the Backyard:
+      // Player clicks "VIEW WELL" -> First Blackout -> Shadow Figure approaches from corridor with accelerating heartbeat -> Second Blackout -> Green Snake Eyes -> Ending / Poem
+      if (target.id === 'backyard_well') {
+        if (
+          gameStateRef.current.storyFlags.shadowFigureSeen ||
+          gameStateRef.current.storyFlags.endingTriggered ||
+          gameStateRef.current.storyFlags.blackoutActive ||
+          endingApproachRef.current?.active
+        ) {
+          return;
+        }
+
+        // Stop proximity audio and rain audio immediately
+        stopBackyardProximityAudio();
+        if (backyardRainStopRef.current) {
+          backyardRainStopRef.current();
+          backyardRainStopRef.current = null;
+        }
+        duckAmbientDroneBed(true);
         setActiveInteractable(null);
+
+        // Turn player to face left towards the corridor path
+        const p = gameStateRef.current.player;
+        p.direction = 'left';
+
+        // 1. First Blackout immediately on clicking "VIEW WELL"
+        playShadowDroneSound();
+        const nextFlags = {
+          ...gameStateRef.current.storyFlags,
+          blackoutActive: true,
+        };
         const nextState: GameState = {
           ...gameStateRef.current,
-          storyFlags: {
-            ...gameStateRef.current.storyFlags,
-            endingTriggered: true,
-          },
+          player: { ...p, direction: 'left', isMoving: false },
+          storyFlags: nextFlags,
         };
         gameStateRef.current = nextState;
         setGameState(nextState);
+
+        // 2. Blackout lasts ~2.0s to hide transition into Shadow Figure approach
+        setTimeout(() => {
+          // When first blackout lifts:
+          // The screen returns to the dark courtyard.
+          // Shadow Figure appears in the distance near the corridor door on the left wall (x: 34, y: 124)
+          const startX = 34;
+          const startY = 124;
+          const curPlayerPos = gameStateRef.current.player.position;
+          const targetX = Math.max(startX + 30, curPlayerPos.x - 30);
+          const targetY = curPlayerPos.y;
+
+          shadowFigureRef.current = {
+            active: true,
+            alpha: 1.0,
+            x: startX,
+            y: startY,
+            timer: 0,
+          };
+
+          // Lift first blackout
+          setGameState((curr) => ({
+            ...curr,
+            storyFlags: {
+              ...curr.storyFlags,
+              blackoutActive: false,
+            },
+          }));
+          gameStateRef.current.storyFlags.blackoutActive = false;
+
+          // Start Heartbeat audio quietly in the background
+          const hbController = startApproachingHeartbeatSound();
+          heartbeatRef.current = hbController;
+
+          // Configure smooth deliberate approach toward player over 6.2s
+          endingApproachRef.current = {
+            active: true,
+            startX,
+            startY,
+            targetX,
+            targetY,
+            startTime: performance.now(),
+            duration: 6200,
+          };
+        }, 2000);
+
         return;
       }
 
@@ -368,6 +466,7 @@ export const GameCanvas: React.FC = () => {
   }, []);
 
   const handleCloseInspection = () => {
+    resumeAudioContext();
     const closedObject = inspectedObjectRef.current;
     setInspectedObject(null);
 
@@ -511,9 +610,13 @@ export const GameCanvas: React.FC = () => {
 
     // Trigger Whispering & Scratching upon closing the unwrapped parcel inspection (sound-only, no visual entity)
     if (
-      closedObject?.id === 'parcel_inspection' &&
+      (closedObject?.id === 'parcel_inspection' ||
+       closedObject?.visualType === 'parcel_contents' ||
+       closedObject?.id === 'parcel_reinspect') &&
       !prevFlags.parcelWhisperPlayed
     ) {
+      console.log('[Audio] Triggering playBasementWhisperScratchSound; parcelWhisperPlayed =', prevFlags.parcelWhisperPlayed);
+      resumeAudioContext();
       playBasementWhisperScratchSound();
       nextFlags.parcelWhisperPlayed = true;
     }
@@ -583,7 +686,36 @@ export const GameCanvas: React.FC = () => {
     setGameState(nextState);
   };
 
+  const handleShadowFaceComplete = useCallback(() => {
+    setShowShadowFigureCloseUp(false);
+    if (shadowFigureRef.current) {
+      shadowFigureRef.current = null;
+    }
+    const nextState: GameState = {
+      ...gameStateRef.current,
+      storyFlags: {
+        ...gameStateRef.current.storyFlags,
+        shadowFigureSeen: true,
+        endingTriggered: true,
+      },
+    };
+    gameStateRef.current = nextState;
+    setGameState(nextState);
+  }, []);
+
   const handleRestart = () => {
+    stopBackyardProximityAudio();
+    stopApproachingHeartbeatSound();
+    if (heartbeatRef.current) {
+      heartbeatRef.current.stop();
+      heartbeatRef.current = null;
+    }
+    endingApproachRef.current = null;
+    if (backyardRainStopRef.current) {
+      backyardRainStopRef.current();
+      backyardRainStopRef.current = null;
+    }
+    setShowShadowFigureCloseUp(false);
     const initialState = createInitialGameState();
     gameStateRef.current = initialState;
     setGameState(initialState);
@@ -611,13 +743,52 @@ export const GameCanvas: React.FC = () => {
     };
   }, []);
 
+  // Backyard Ambient Rain Sound
+  useEffect(() => {
+    const isBackyard = gameState.currentRoom === 'backyard';
+    const isMuted =
+      gameState.storyFlags.blackoutActive ||
+      gameState.storyFlags.endingTriggered ||
+      showShadowFigureCloseUp;
+
+    if (isBackyard && !isMuted) {
+      if (!backyardRainStopRef.current) {
+        backyardRainStopRef.current = startWindowRainSound(false);
+      }
+    } else {
+      if (backyardRainStopRef.current) {
+        backyardRainStopRef.current();
+        backyardRainStopRef.current = null;
+      }
+      stopBackyardProximityAudio();
+    }
+
+    return () => {
+      if (backyardRainStopRef.current) {
+        backyardRainStopRef.current();
+        backyardRainStopRef.current = null;
+      }
+      stopBackyardProximityAudio();
+    };
+  }, [
+    gameState.currentRoom,
+    gameState.storyFlags.blackoutActive,
+    gameState.storyFlags.endingTriggered,
+    showShadowFigureCloseUp,
+  ]);
+
   // Duck ambient drone bed during full blackout events or ending sequence
   useEffect(() => {
     const isDucked =
       gameState.storyFlags.blackoutActive ||
-      gameState.storyFlags.endingTriggered;
+      gameState.storyFlags.endingTriggered ||
+      showShadowFigureCloseUp;
     duckAmbientDroneBed(isDucked);
-  }, [gameState.storyFlags.blackoutActive, gameState.storyFlags.endingTriggered]);
+  }, [
+    gameState.storyFlags.blackoutActive,
+    gameState.storyFlags.endingTriggered,
+    showShadowFigureCloseUp,
+  ]);
 
   // Keyboard event listeners
   useEffect(() => {
@@ -629,11 +800,12 @@ export const GameCanvas: React.FC = () => {
         return;
       }
 
-      // If opening sequence, ending sequence, inspecting, diary open, phone open, register open, keypad open, or blackout is active, lock input
+      // If opening sequence, ending sequence, inspecting, diary open, phone open, register open, keypad open, shadow face close up, or blackout is active, lock input
       if (
         gameStateRef.current.storyFlags.openingActive ||
         gameStateRef.current.storyFlags.blackoutActive ||
         gameStateRef.current.storyFlags.endingTriggered ||
+        showShadowFigureCloseUpRef.current ||
         isDiaryOpenRef.current ||
         isPhoneOpenRef.current ||
         isRegisterOpenRef.current ||
@@ -754,6 +926,8 @@ export const GameCanvas: React.FC = () => {
         currentState.storyFlags.openingActive ||
         currentState.storyFlags.blackoutActive ||
         currentState.storyFlags.endingTriggered ||
+        Boolean(endingApproachRef.current?.active) ||
+        showShadowFigureCloseUpRef.current ||
         isDiaryOpenRef.current ||
         isPhoneOpenRef.current ||
         isRegisterOpenRef.current ||
@@ -840,8 +1014,68 @@ export const GameCanvas: React.FC = () => {
       currentState.player.direction = newDirection;
       currentState.player.isMoving = isMoving;
 
-      // Update Shadow Figure fading & lifetime if active in the basement
-      if (shadowFigureRef.current?.active) {
+      // 1. Backyard ending approach animation & heartbeat update
+      if (endingApproachRef.current?.active && shadowFigureRef.current?.active) {
+        const approach = endingApproachRef.current;
+        const elapsed = (performance.now() - approach.startTime) / 1000;
+        const durationSec = approach.duration / 1000;
+        const progress = Math.min(1.0, Math.max(0, elapsed / durationSec));
+
+        // Smooth deliberate linear movement toward player
+        shadowFigureRef.current.x =
+          approach.startX + (approach.targetX - approach.startX) * progress;
+        shadowFigureRef.current.y =
+          approach.startY + (approach.targetY - approach.startY) * progress;
+        shadowFigureRef.current.alpha = 1.0;
+
+        // Accelerate and intensify heartbeat audio as progress increases
+        if (heartbeatRef.current) {
+          heartbeatRef.current.setIntensity(progress);
+        }
+
+        // When figure reaches close proximity / duration completes:
+        if (progress >= 1.0) {
+          approach.active = false;
+          endingApproachRef.current = null;
+
+          // Stop heartbeat sound immediately on second blackout
+          if (heartbeatRef.current) {
+            heartbeatRef.current.stop();
+            heartbeatRef.current = null;
+          }
+
+          // Deactivate shadow figure
+          if (shadowFigureRef.current) {
+            shadowFigureRef.current.active = false;
+          }
+
+          // PART 8: SECOND BLACKOUT
+          // The screen cuts to pitch black
+          const resolvedState: GameState = {
+            ...gameStateRef.current,
+            storyFlags: {
+              ...gameStateRef.current.storyFlags,
+              blackoutActive: true,
+            },
+          };
+          gameStateRef.current = resolvedState;
+          setGameState(resolvedState);
+
+          // Brief pause in pitch black (~1.0s) then show CREEPY GREEN SNAKE EYES
+          setTimeout(() => {
+            setGameState((curr) => ({
+              ...curr,
+              storyFlags: {
+                ...curr.storyFlags,
+                blackoutActive: false,
+              },
+            }));
+            gameStateRef.current.storyFlags.blackoutActive = false;
+            setShowShadowFigureCloseUp(true);
+          }, 1000);
+        }
+      } else if (currentState.currentRoom === 'basement' && shadowFigureRef.current?.active) {
+        // Basement Shadow Figure logic:
         shadowFigureRef.current.timer += dt;
         const playerDist = Math.hypot(
           newPosition.x - shadowFigureRef.current.x,
@@ -859,6 +1093,20 @@ export const GameCanvas: React.FC = () => {
             currentState.storyFlags.shadowFigureSeen = true;
           }
         }
+      }
+
+      // Backyard proximity-based escalating ambient sound towards the ancient stone well
+      if (
+        currentState.currentRoom === 'backyard' &&
+        !currentState.storyFlags.blackoutActive &&
+        !currentState.storyFlags.endingTriggered &&
+        !showShadowFigureCloseUpRef.current
+      ) {
+        // Ancient Well is at x: 182, y: 98, width: 58, height: 44. Center approx (211, 120)
+        const wellDist = Math.hypot(newPosition.x - 211, newPosition.y - 120);
+        // Distance from spawn point (52, 132) is ~160px; right in front of well is ~35px
+        const proximity = Math.max(0, Math.min(1, (160 - wellDist) / 125));
+        updateBackyardProximityAudio(proximity);
       }
 
       // Render frame
@@ -898,6 +1146,11 @@ export const GameCanvas: React.FC = () => {
         {/* Opening Title Sequence Overlay */}
         {gameState.storyFlags.openingActive && (
           <OpeningSequence onComplete={handleOpeningComplete} />
+        )}
+
+        {/* Shadow Figure Face Close-Up (Brief second blackout beat) */}
+        {showShadowFigureCloseUp && (
+          <ShadowFigureFaceCloseUp onComplete={handleShadowFaceComplete} />
         )}
 
         {/* Final Ending Sequence Overlay */}
@@ -1015,7 +1268,8 @@ export const GameCanvas: React.FC = () => {
         {/* On-screen touch controls for mobile viewports */}
         {!gameState.storyFlags.openingActive &&
           !gameState.storyFlags.blackoutActive &&
-          !gameState.storyFlags.endingTriggered && (
+          !gameState.storyFlags.endingTriggered &&
+          !showShadowFigureCloseUp && (
             <TouchControls
               onDirectionPress={(dir) => {
                 touchDirectionRef.current = dir;

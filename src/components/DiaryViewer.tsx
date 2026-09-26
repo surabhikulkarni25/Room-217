@@ -95,14 +95,15 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
 
           {/* Page Lines */}
           <div className="space-y-3 z-10">
-            {page.lines.map((line, idx) => {
+            {page?.lines?.map((line, idx) => {
+              if (!line) return null;
               if (line.style === 'heading') {
                 return (
                   <div
                     key={idx}
                     className="flex items-center text-xs sm:text-sm font-bold text-[#483321] tracking-wider border-b border-[#c8bc9f] pb-1 uppercase"
                   >
-                    <span>{line.text}</span>
+                    <span>{line?.text ?? ''}</span>
                     {/* Visual charred burn hole eating into the date */}
                     {line.damageEffect === 'charred_edge' && (
                       <span className="inline-flex items-center ml-1.5">
@@ -156,7 +157,7 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
                     key={idx}
                     className="text-xs sm:text-[13px] leading-relaxed text-[#35281e]"
                   >
-                    <span>{line.text} </span>
+                    <span>{line?.text ?? ''} </span>
                     {/* Visual jagged tear gap where words are physically missing */}
                     <span
                       className="inline-block w-20 h-4 bg-[#231a14] align-middle shadow-md"
@@ -175,7 +176,7 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
                     key={idx}
                     className="text-xs sm:text-[13px] leading-relaxed text-[#4e3d2c] italic"
                   >
-                    {line.text}
+                    {line?.text ?? ''}
                   </p>
                 );
               }
@@ -185,7 +186,7 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
                   key={idx}
                   className="text-xs sm:text-[13px] leading-relaxed text-[#35281e]"
                 >
-                  {line.text}
+                  {line?.text ?? ''}
                 </p>
               );
             })}
