@@ -1036,6 +1036,8 @@ export const GameCanvas: React.FC = () => {
               ? 'ROOM 214 — ABANDONED ROOM'
               : gameState.currentRoom === 'basement'
               ? 'ROOM 217 — HOSTEL BASEMENT'
+              : gameState.currentRoom === 'backyard'
+              ? 'ROOM 217 — HOSTEL BACKYARD'
               : 'ROOM 217 — ACT 1: INVESTIGATION'}
           </span>
           <span className="text-[#453c33] hidden sm:inline">&bull;</span>

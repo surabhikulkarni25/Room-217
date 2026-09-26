@@ -67,6 +67,9 @@ export function renderInspectionVisual(
     case 'key217_note':
       renderKey217NoteCloseUp(ctx);
       break;
+    case 'well':
+      renderWellCloseUp(ctx);
+      break;
     default:
       renderGenericCloseUp(ctx);
       break;
@@ -1889,6 +1892,126 @@ function renderKey217NoteCloseUp(ctx: CanvasRenderingContext2D): void {
   // Key tip
   ctx.fillStyle = '#fae196';
   ctx.fillRect(70, 69, 3, 3);
+}
+
+/**
+ * 18. Close-up of the Ancient Stone Well.
+ */
+function renderWellCloseUp(ctx: CanvasRenderingContext2D): void {
+  // Cold rainy night sky gradient background
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, 50);
+  skyGrad.addColorStop(0, '#04070a');
+  skyGrad.addColorStop(1, '#0c151c');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, 96, 50);
+
+  // Rain streaks
+  ctx.strokeStyle = 'rgba(160, 195, 220, 0.28)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const rainStreaks = [
+    [12, 6], [28, 14], [45, 8], [62, 18], [78, 10], [90, 22],
+    [20, 32], [36, 40], [54, 30], [70, 44], [84, 36]
+  ];
+  rainStreaks.forEach(([rx, ry]) => {
+    ctx.moveTo(rx, ry);
+    ctx.lineTo(rx - 2, ry + 8);
+  });
+  ctx.stroke();
+
+  // Dark ground surrounding well base
+  ctx.fillStyle = '#0f1412';
+  ctx.fillRect(0, 50, 96, 46);
+
+  // Heavy stone masonry outer cylinder
+  ctx.fillStyle = '#1e2622';
+  ctx.fillRect(10, 48, 76, 44);
+
+  // Individual textured mossy stones on well front
+  const stones = [
+    { x: 12, y: 50, w: 22, h: 10, c: '#27342e' },
+    { x: 36, y: 50, w: 24, h: 10, c: '#232f29' },
+    { x: 62, y: 50, w: 22, h: 10, c: '#293730' },
+    { x: 10, y: 62, w: 18, h: 11, c: '#222d27' },
+    { x: 30, y: 62, w: 26, h: 11, c: '#2b3932' },
+    { x: 58, y: 62, w: 28, h: 11, c: '#202a24' },
+    { x: 12, y: 75, w: 24, h: 12, c: '#26332d' },
+    { x: 38, y: 75, w: 26, h: 12, c: '#1f2923' },
+    { x: 66, y: 75, w: 18, h: 12, c: '#25322b' },
+  ];
+
+  stones.forEach((s) => {
+    ctx.fillStyle = s.c;
+    ctx.fillRect(s.x, s.y, s.w, s.h);
+    // Dark mortar borders
+    ctx.strokeStyle = '#0d1310';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+  });
+
+  // Dark green weeping moss dripping from seams
+  ctx.fillStyle = '#1b2a1e';
+  ctx.fillRect(16, 60, 8, 4);
+  ctx.fillRect(48, 72, 10, 5);
+  ctx.fillRect(72, 58, 6, 6);
+
+  // Top stone rim collar
+  ctx.fillStyle = '#323f38';
+  ctx.beginPath();
+  ctx.ellipse(48, 46, 38, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Dark inner rim shadow
+  ctx.fillStyle = '#131916';
+  ctx.beginPath();
+  ctx.ellipse(48, 46, 32, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Bottomless pitch-black shaft
+  ctx.fillStyle = '#020304';
+  ctx.beginPath();
+  ctx.ellipse(48, 46, 28, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Murky deep reflection at bottom
+  ctx.fillStyle = 'rgba(100, 160, 195, 0.2)';
+  ctx.fillRect(38, 45, 20, 2);
+
+  // Weathered wooden upright gallows timber
+  ctx.fillStyle = '#261b13';
+  ctx.fillRect(12, 10, 6, 40); // Left beam
+  ctx.fillRect(78, 10, 6, 40); // Right beam
+  ctx.fillStyle = '#3a2a1d';
+  ctx.fillRect(13, 10, 2, 40);
+  ctx.fillRect(79, 10, 2, 40);
+
+  // Decayed crossbeam timber
+  ctx.fillStyle = '#2e2016';
+  ctx.fillRect(8, 8, 80, 7);
+  ctx.fillStyle = '#423021';
+  ctx.fillRect(9, 9, 78, 2);
+
+  // Iron spool axle & collapsed drum
+  ctx.fillStyle = '#18120c';
+  ctx.fillRect(36, 12, 24, 7);
+
+  // Severed frayed rope
+  ctx.strokeStyle = '#7c694c';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(48, 17);
+  ctx.lineTo(48, 42);
+  ctx.stroke();
+
+  // Severed frayed fibers
+  ctx.strokeStyle = '#a48b64';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(48, 42);
+  ctx.lineTo(46, 45);
+  ctx.moveTo(48, 42);
+  ctx.lineTo(50, 46);
+  ctx.stroke();
 }
 
 /**

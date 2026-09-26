@@ -1612,4 +1612,360 @@ function drawRoom214Lighting(ctx: CanvasRenderingContext2D, player: PlayerState)
   ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 }
 
+/* =========================================================================
+   HOSTEL BACKYARD — OUTDOOR COURTYARD & WELL RENDERING
+   ========================================================================= */
+
+function drawBackyardGround(ctx: CanvasRenderingContext2D): void {
+  // Muddy dark earth base
+  ctx.fillStyle = '#111613';
+  ctx.fillRect(34, 75, VIRTUAL_WIDTH - 66, 120);
+
+  // Wet mud textures and darker earth variations
+  ctx.fillStyle = '#0c100e';
+  for (let y = 78; y < 192; y += 14) {
+    for (let x = 38; x < 282; x += 22) {
+      if ((x * 3 + y * 7) % 5 === 0) {
+        ctx.fillRect(x, y, 16, 4);
+      }
+    }
+  }
+
+  // Worn cobblestone pathway leading from fire exit door (x:34, y:120-145) toward well (x:188, y:104)
+  const pathStones = [
+    { x: 42, y: 130, w: 12, h: 7 },
+    { x: 58, y: 132, w: 14, h: 8 },
+    { x: 74, y: 128, w: 13, h: 7 },
+    { x: 90, y: 126, w: 15, h: 8 },
+    { x: 108, y: 122, w: 14, h: 7 },
+    { x: 124, y: 120, w: 13, h: 8 },
+    { x: 140, y: 116, w: 14, h: 7 },
+    { x: 156, y: 114, w: 15, h: 8 },
+    { x: 172, y: 112, w: 12, h: 7 },
+    // Scattered auxiliary stepping stones
+    { x: 64, y: 144, w: 10, h: 6 },
+    { x: 96, y: 140, w: 11, h: 6 },
+    { x: 132, y: 134, w: 10, h: 6 },
+    { x: 168, y: 128, w: 11, h: 6 },
+  ];
+
+  pathStones.forEach((stone) => {
+    // Wet cobblestone shadow
+    ctx.fillStyle = '#080c09';
+    ctx.fillRect(stone.x, stone.y + 1, stone.w, stone.h);
+    // Stone body
+    ctx.fillStyle = '#222d28';
+    ctx.fillRect(stone.x, stone.y, stone.w, stone.h - 1);
+    // Mossy edge
+    ctx.fillStyle = '#18241b';
+    ctx.fillRect(stone.x + 1, stone.y + 1, 3, stone.h - 3);
+    // Wet highlight glint
+    ctx.fillStyle = 'rgba(160, 190, 205, 0.18)';
+    ctx.fillRect(stone.x + 2, stone.y, stone.w - 4, 1);
+  });
+
+  // Dark rain puddles with murky water sheen
+  const puddles = [
+    { x: 112, y: 154, rx: 18, ry: 7 },
+    { x: 196, y: 150, rx: 22, ry: 8 },
+    { x: 236, y: 122, rx: 14, ry: 6 },
+    { x: 70, y: 102, rx: 12, ry: 5 },
+  ];
+
+  puddles.forEach((p) => {
+    // Outer damp ring
+    ctx.fillStyle = '#0a100d';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx + 2, p.ry + 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Water surface
+    ctx.fillStyle = '#0f1820';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rain ripple reflections
+    ctx.fillStyle = 'rgba(140, 185, 215, 0.25)';
+    ctx.fillRect(p.x - p.rx + 5, p.y - 1, p.rx * 1.2, 1);
+    ctx.fillRect(p.x - p.rx + 8, p.y + 2, p.rx * 0.8, 1);
+  });
+
+  // Dark clumps of wild wet grass and creeping weeds
+  ctx.fillStyle = '#162319';
+  const weeds = [
+    [48, 88], [80, 168], [144, 178], [210, 172], [260, 150], [250, 96], [160, 90]
+  ];
+  weeds.forEach(([wx, wy]) => {
+    ctx.fillRect(wx, wy, 2, 5);
+    ctx.fillRect(wx - 2, wy + 2, 6, 2);
+    ctx.fillRect(wx + 3, wy + 1, 2, 4);
+  });
+}
+
+function drawBackyardWalls(ctx: CanvasRenderingContext2D): void {
+  // Top stone perimeter wall (y: 0 to 75)
+  // Dark sky behind iron railing
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, 50);
+  skyGrad.addColorStop(0, '#04070a');
+  skyGrad.addColorStop(1, '#091017');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, 50);
+
+  // Distant iron railing posts atop wall (y: 18 to 44)
+  ctx.fillStyle = '#12171c';
+  for (let rx = 36; rx < 288; rx += 8) {
+    ctx.fillRect(rx, 22, 2, 24);
+    // Finial spear points
+    ctx.fillRect(rx - 1, 19, 4, 3);
+  }
+  ctx.fillRect(34, 25, 254, 2); // Horizontal rail top
+  ctx.fillRect(34, 40, 254, 2); // Horizontal rail bottom
+
+  // Heavy stone masonry wall base (y: 45 to 75)
+  ctx.fillStyle = '#19201d';
+  ctx.fillRect(0, 45, VIRTUAL_WIDTH, 30);
+
+  // Stone block grid & mortar grooves
+  ctx.fillStyle = '#0f1412';
+  ctx.fillRect(0, 45, VIRTUAL_WIDTH, 2); // Top wall cap
+  ctx.fillRect(0, 74, VIRTUAL_WIDTH, 2); // Bottom mortar line
+  for (let sy = 47; sy < 74; sy += 9) {
+    ctx.fillRect(0, sy, VIRTUAL_WIDTH, 1);
+    const offset = (sy % 18 === 0) ? 0 : 16;
+    for (let sx = offset; sx < VIRTUAL_WIDTH; sx += 32) {
+      ctx.fillRect(sx, sy, 1, 9);
+    }
+  }
+
+  // Left rear hostel building brick wall (x: 0 to 34, y: 0 to VIRTUAL_HEIGHT)
+  ctx.fillStyle = '#1c1514';
+  ctx.fillRect(0, 0, 34, VIRTUAL_HEIGHT);
+  // Reddish-grey weathered brick lines
+  ctx.fillStyle = '#140e0d';
+  for (let by = 0; by < VIRTUAL_HEIGHT; by += 8) {
+    ctx.fillRect(0, by, 34, 1);
+  }
+  // Hostel Fire Exit Door on left wall (x: 20 to 34, y: 110 to 156)
+  ctx.fillStyle = '#0b0e11';
+  ctx.fillRect(18, 110, 16, 46);
+  ctx.fillStyle = '#222830';
+  ctx.fillRect(20, 112, 14, 42); // Steel door panel
+  ctx.fillStyle = '#3a4450';
+  ctx.fillRect(28, 114, 2, 38); // Door vertical rebate
+  // Emergency crash push bar
+  ctx.fillStyle = '#8b2520';
+  ctx.fillRect(24, 130, 8, 4);
+  ctx.fillStyle = '#d4aa50';
+  ctx.fillRect(23, 131, 2, 2); // Brass bracket
+
+  // Right crumbling stone perimeter wall (x: 288 to 320, y: 0 to VIRTUAL_HEIGHT)
+  ctx.fillStyle = '#161d19';
+  ctx.fillRect(288, 0, 32, VIRTUAL_HEIGHT);
+  ctx.fillStyle = '#0e1310';
+  for (let rsy = 0; rsy < VIRTUAL_HEIGHT; rsy += 10) {
+    ctx.fillRect(288, rsy, 32, 1);
+    const roffset = (rsy % 20 === 0) ? 296 : 308;
+    ctx.fillRect(roffset, rsy, 1, 10);
+  }
+
+  // Creeping dead ivy along right and top wall
+  ctx.fillStyle = '#111a14';
+  ctx.fillRect(284, 52, 6, 28);
+  ctx.fillRect(280, 60, 4, 16);
+  ctx.fillRect(276, 68, 6, 10);
+
+  // Bottom dense muddy overgrowth and brambles (y: 195 to 240)
+  ctx.fillStyle = '#090d0b';
+  ctx.fillRect(0, 195, VIRTUAL_WIDTH, 45);
+  // Thorny bramble silhouettes
+  ctx.fillStyle = '#131b15';
+  for (let bx = 0; bx < VIRTUAL_WIDTH; bx += 6) {
+    const spikeH = 4 + ((bx * 7) % 10);
+    ctx.fillRect(bx, 195 - spikeH, 3, spikeH + 4);
+  }
+
+  // Dead gnarled oak tree (rect: { x: 82, y: 66, width: 26, height: 28 })
+  const tx = 82;
+  const ty = 66;
+
+  // Tree base drop shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.beginPath();
+  ctx.ellipse(tx + 13, ty + 26, 16, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Twisted dark trunk
+  ctx.fillStyle = '#18130e';
+  ctx.fillRect(tx + 9, ty + 10, 8, 16); // Trunk center
+  ctx.fillRect(tx + 6, ty + 18, 5, 8);  // Left root flare
+  ctx.fillRect(tx + 15, ty + 19, 6, 7); // Right root flare
+
+  // Bark texture & highlights
+  ctx.fillStyle = '#261e16';
+  ctx.fillRect(tx + 10, ty + 12, 3, 12);
+  ctx.fillStyle = '#0f0c09';
+  ctx.fillRect(tx + 13, ty + 14, 2, 10);
+
+  // Twisted bare dead branches reaching into upper courtyard
+  ctx.strokeStyle = '#1a140f';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  // Main left branch
+  ctx.moveTo(tx + 11, ty + 10);
+  ctx.lineTo(tx + 4, ty + 2);
+  ctx.lineTo(tx - 4, ty - 6);
+  // Main right branch
+  ctx.moveTo(tx + 15, ty + 10);
+  ctx.lineTo(tx + 22, ty + 3);
+  ctx.lineTo(tx + 29, ty - 5);
+  // Center high branch
+  ctx.moveTo(tx + 13, ty + 10);
+  ctx.lineTo(tx + 14, ty - 8);
+  ctx.stroke();
+
+  // Thinner splinter twigs
+  ctx.strokeStyle = '#120e0a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(tx + 4, ty + 2);
+  ctx.lineTo(tx + 1, ty - 4);
+  ctx.moveTo(tx + 22, ty + 3);
+  ctx.lineTo(tx + 25, ty - 1);
+  ctx.moveTo(tx + 14, ty - 2);
+  ctx.lineTo(tx + 18, ty - 10);
+  ctx.stroke();
+}
+
+function drawBackyardWell(ctx: CanvasRenderingContext2D, room: RoomDefinition): void {
+  // Ancient Stone Well: collision at { x: 188, y: 104, width: 46, height: 32 }
+  const wx = 188;
+  const wy = 104;
+
+  // Deep ground contact shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.beginPath();
+  ctx.ellipse(wx + 23, wy + 26, 28, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer stone masonry cylinder wall
+  ctx.fillStyle = '#1e2622';
+  ctx.fillRect(wx + 2, wy + 8, 42, 20);
+
+  // Stone block textures on cylindrical rim
+  ctx.fillStyle = '#2b3631';
+  ctx.fillRect(wx + 4, wy + 9, 10, 5);
+  ctx.fillRect(wx + 18, wy + 9, 11, 5);
+  ctx.fillRect(wx + 32, wy + 9, 10, 5);
+
+  ctx.fillStyle = '#18201c';
+  ctx.fillRect(wx + 10, wy + 16, 12, 5);
+  ctx.fillRect(wx + 26, wy + 16, 12, 5);
+
+  // Damp dark moss patches on stones
+  ctx.fillStyle = '#1b2a1e';
+  ctx.fillRect(wx + 3, wy + 18, 6, 8);
+  ctx.fillRect(wx + 37, wy + 12, 5, 12);
+  ctx.fillRect(wx + 20, wy + 22, 8, 4);
+
+  // Rim top stone collar
+  ctx.fillStyle = '#2d3832';
+  ctx.beginPath();
+  ctx.ellipse(wx + 23, wy + 9, 21, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pitch-black well shaft opening inside
+  ctx.fillStyle = '#030506';
+  ctx.beginPath();
+  ctx.ellipse(wx + 23, wy + 9, 16, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Black water reflection deep within
+  ctx.fillStyle = 'rgba(100, 160, 190, 0.15)';
+  ctx.fillRect(wx + 18, wy + 8, 10, 1);
+
+  // Weathered wooden vertical gallows posts
+  ctx.fillStyle = '#241a12';
+  ctx.fillRect(wx + 3, wy - 14, 4, 24); // Left post
+  ctx.fillRect(wx + 39, wy - 14, 4, 24); // Right post
+
+  // Decayed rotting crossbeam
+  ctx.fillStyle = '#2e2117';
+  ctx.fillRect(wx + 1, wy - 14, 44, 4);
+
+  // Iron axle and collapsed rotting spool
+  ctx.fillStyle = '#1a130d';
+  ctx.fillRect(wx + 18, wy - 12, 10, 5);
+
+  // Severed frayed hemp rope dangling down into the abyss
+  ctx.strokeStyle = '#61533c';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(wx + 23, wy - 8);
+  ctx.lineTo(wx + 23, wy + 7);
+  ctx.stroke();
+
+  // Wet rain glint on crossbeam top
+  ctx.fillStyle = 'rgba(180, 210, 230, 0.25)';
+  ctx.fillRect(wx + 2, wy - 14, 42, 1);
+}
+
+function drawRainOverlay(ctx: CanvasRenderingContext2D): void {
+  // Rain streaks falling diagonally
+  ctx.strokeStyle = 'rgba(165, 195, 220, 0.22)';
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+  // Fixed pseudo-random rain distribution across screen
+  const rainDrops = [
+    [24, 30], [54, 80], [86, 40], [120, 110], [150, 65], [178, 140],
+    [208, 50], [236, 120], [264, 75], [294, 150], [42, 160], [78, 190],
+    [104, 145], [138, 185], [168, 205], [220, 195], [252, 175], [280, 210],
+    [32, 95], [68, 130], [112, 70], [146, 125], [192, 90], [228, 155],
+    [272, 105], [306, 85], [14, 180], [92, 215], [160, 160], [244, 225]
+  ];
+
+  rainDrops.forEach(([rx, ry]) => {
+    ctx.moveTo(rx, ry);
+    ctx.lineTo(rx - 3, ry + 11);
+  });
+  ctx.stroke();
+}
+
+function drawBackyardLighting(ctx: CanvasRenderingContext2D, player: PlayerState): void {
+  // Cold, stormy moonlight ambient filter
+  const ambient = ctx.createRadialGradient(160, 60, 20, 160, 120, 140);
+  ambient.addColorStop(0, 'rgba(80, 115, 140, 0.12)');
+  ambient.addColorStop(0.6, 'rgba(30, 45, 60, 0.08)');
+  ambient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = ambient;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+  // Player personal flashlight beam / circle in the rain
+  const px = player.position.x + 8;
+  const py = player.position.y + 12;
+
+  const playerGlow = ctx.createRadialGradient(px, py, 6, px, py, 64);
+  playerGlow.addColorStop(0, 'rgba(215, 235, 250, 0.28)');
+  playerGlow.addColorStop(0.5, 'rgba(110, 155, 185, 0.09)');
+  playerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = playerGlow;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+  // Cold murky night vignette around outer perimeter
+  const vignette = ctx.createRadialGradient(
+    VIRTUAL_WIDTH / 2,
+    VIRTUAL_HEIGHT / 2,
+    55,
+    VIRTUAL_WIDTH / 2,
+    VIRTUAL_HEIGHT / 2,
+    148
+  );
+  vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  vignette.addColorStop(0.65, 'rgba(5, 9, 12, 0.65)');
+  vignette.addColorStop(1, 'rgba(2, 4, 6, 0.95)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+}
+
 

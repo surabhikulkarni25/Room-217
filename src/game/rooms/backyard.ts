@@ -39,8 +39,28 @@ export const backyard: RoomDefinition = {
     },
   ],
 
-  // Exactly ONE interactable object in this area: the ancient stone well
+  // Interactable objects in this area
   interactables: [
+    {
+      id: 'backyard_door',
+      name: 'Fire Exit Door',
+      rect: { x: 20, y: 110, width: 22, height: 46 },
+      prompt: 'Return to Corridor',
+      inspectTitle: 'Fire Exit Door',
+      visualType: 'door',
+      inspectText:
+        'The heavy steel fire exit door leading back inside into the second-floor corridor.',
+      interactionDistance: 28,
+      onInteract: (state) => ({
+        currentRoom: 'corridor',
+        player: {
+          ...state.player,
+          position: { x: 44, y: 124 },
+          direction: 'right',
+          isMoving: false,
+        },
+      }),
+    },
     {
       id: 'backyard_well',
       name: 'Ancient Stone Well',
