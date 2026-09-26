@@ -110,6 +110,43 @@ export const GameCanvas: React.FC = () => {
   // Touch virtual direction input
   const touchDirectionRef = useRef<Direction | null>(null);
 
+  // Detect whether device supports touch (mobile phones, tablets, touchscreens)
+  const [isTouchDevice, setIsTouchDevice] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    );
+  });
+
+  useEffect(() => {
+    const handleTouchDetected = () => {
+      setIsTouchDevice(true);
+    };
+    window.addEventListener('touchstart', handleTouchDetected, { passive: true, once: true });
+    return () => window.removeEventListener('touchstart', handleTouchDetected);
+  }, []);
+
+  // Compute concise action label for mobile/touch action button
+  const getActionLabel = (item: InteractableObject | null, isInspecting: boolean): string => {
+    if (isInspecting) return 'CLOSE';
+    if (!item) return 'INTERACT';
+    const p = item.prompt.trim().toUpperCase();
+    if (p.includes('ENTER')) return 'ENTER';
+    if (p.includes('OPEN')) return 'OPEN';
+    if (p.includes('READ')) return 'READ';
+    if (p.includes('INSPECT')) return 'INSPECT';
+    if (p.includes('EXAMINE')) return 'EXAMINE';
+    if (p.includes('LOOK')) return 'LOOK';
+    if (p.includes('VIEW')) return 'VIEW';
+    if (p.includes('CHECK')) return 'CHECK';
+    if (p.includes('PUSH')) return 'EXIT';
+    if (p.includes('TAKE')) return 'TAKE';
+    if (p.includes('POWER')) return 'ON';
+    return 'INTERACT';
+  };
+
   // Input keys tracking
   const keysRef = useRef<{
     up: boolean;
@@ -463,6 +500,7 @@ export const GameCanvas: React.FC = () => {
 
   const handleCloseInspection = () => {
     resumeAudioContext();
+    touchDirectionRef.current = null;
     const closedObject = inspectedObjectRef.current;
     setInspectedObject(null);
 
@@ -1122,18 +1160,25 @@ export const GameCanvas: React.FC = () => {
           <div className="absolute inset-0 bg-black z-30 pointer-events-none" />
         )}
 
-        {/* Minimal interaction prompt bar (bottom of canvas) */}
+        {/* Interaction prompt bar (bottom of canvas) - Tappable on touch devices */}
         {activeInteractable &&
           !inspectedObject &&
           !gameState.storyFlags.openingActive &&
           !gameState.storyFlags.blackoutActive &&
           !gameState.storyFlags.endingTriggered && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/85 border border-[#d4aa50] text-[#e8dfd3] font-mono text-xs sm:text-sm tracking-wide rounded-sm shadow-md flex items-center space-x-2 pointer-events-none z-20">
+            <button
+              type="button"
+              onClick={triggerInteraction}
+              className="absolute bottom-20 sm:bottom-3 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1.5 bg-black/90 hover:bg-[#1a140e] active:scale-95 border border-[#d4aa50] text-[#e8dfd3] font-mono text-xs sm:text-sm tracking-wide rounded-sm shadow-xl flex items-center space-x-2 pointer-events-auto cursor-pointer z-20 touch-manipulation transition-transform"
+              aria-label={activeInteractable.prompt}
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-[#d4aa50] animate-pulse" />
               <span>
-                Press <kbd className="bg-[#2a2219] px-1 py-0.5 border border-[#524434] text-amber-300 font-bold">E</kbd> to {activeInteractable.prompt}
+                <span className="sm:hidden text-amber-300 font-bold">TAP:</span>
+                <span className="hidden sm:inline">Press <kbd className="bg-[#2a2219] px-1 py-0.5 border border-[#524434] text-amber-300 font-bold">E</kbd> to</span>
+                {' '}{activeInteractable.prompt}
               </span>
-            </div>
+            </button>
           )}
 
         {/* Visual Inspection Modal Dialog */}
@@ -1154,21 +1199,30 @@ export const GameCanvas: React.FC = () => {
         {/* Dedicated Friend's Diary Viewer Modal */}
         {isDiaryOpen && !gameState.storyFlags.endingTriggered && (
           <DiaryViewer
-            onClose={() => setIsDiaryOpen(false)}
+            onClose={() => {
+              touchDirectionRef.current = null;
+              setIsDiaryOpen(false);
+            }}
           />
         )}
 
         {/* Dedicated Friend's Phone Viewer Modal */}
         {isPhoneOpen && !gameState.storyFlags.endingTriggered && (
           <PhoneViewer
-            onClose={() => setIsPhoneOpen(false)}
+            onClose={() => {
+              touchDirectionRef.current = null;
+              setIsPhoneOpen(false);
+            }}
           />
         )}
 
         {/* Dedicated Register / Maintenance Log Modal */}
         {isRegisterOpen && !gameState.storyFlags.endingTriggered && (
           <RegisterViewer
-            onClose={() => setIsRegisterOpen(false)}
+            onClose={() => {
+              touchDirectionRef.current = null;
+              setIsRegisterOpen(false);
+            }}
           />
         )}
 
@@ -1176,7 +1230,10 @@ export const GameCanvas: React.FC = () => {
         {isKeypadOpen && !gameState.storyFlags.endingTriggered && (
           <Room214KeypadModal
             onSuccess={handleKeypadSuccess}
-            onClose={() => setIsKeypadOpen(false)}
+            onClose={() => {
+              touchDirectionRef.current = null;
+              setIsKeypadOpen(false);
+            }}
           />
         )}
 
@@ -1189,12 +1246,14 @@ export const GameCanvas: React.FC = () => {
               !isDiaryOpen &&
               !isPhoneOpen && (
                 <button
+                  type="button"
                   onClick={() => setIsDiaryOpen(true)}
-                  className="px-2.5 py-1 bg-[#1c140d]/90 hover:bg-[#302216] border border-[#d4aa50] text-[#d4aa50] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer transition-all active:scale-95"
+                  className="px-2.5 py-1.5 sm:py-1 bg-[#1c140d]/90 hover:bg-[#302216] border border-[#d4aa50] text-[#d4aa50] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer touch-manipulation transition-all active:scale-95 min-h-[36px]"
                   title="Open Friend's Diary (J)"
                 >
                   <span>📖</span>
-                  <span className="font-bold">Diary [J]</span>
+                  <span className="font-bold">Diary</span>
+                  <span className="hidden sm:inline font-bold">[J]</span>
                 </button>
               )}
 
@@ -1204,12 +1263,14 @@ export const GameCanvas: React.FC = () => {
               !isDiaryOpen &&
               !isPhoneOpen && (
                 <button
+                  type="button"
                   onClick={() => setIsPhoneOpen(true)}
-                  className="px-2.5 py-1 bg-[#121c1f]/90 hover:bg-[#1d2d32] border border-[#4db6ac] text-[#80cbc4] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer transition-all active:scale-95"
+                  className="px-2.5 py-1.5 sm:py-1 bg-[#121c1f]/90 hover:bg-[#1d2d32] border border-[#4db6ac] text-[#80cbc4] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer touch-manipulation transition-all active:scale-95 min-h-[36px]"
                   title="Open Friend's Phone (P)"
                 >
                   <span>📱</span>
-                  <span className="font-bold">Phone [P]</span>
+                  <span className="font-bold">Phone</span>
+                  <span className="hidden sm:inline font-bold">[P]</span>
                 </button>
               )}
           </div>
@@ -1224,7 +1285,7 @@ export const GameCanvas: React.FC = () => {
           onToggle={() => setShowDebug((prev) => !prev)}
         />
 
-        {/* On-screen touch controls for mobile viewports */}
+        {/* On-screen touch controls for touch viewports */}
         {!gameState.storyFlags.openingActive &&
           !gameState.storyFlags.blackoutActive &&
           !gameState.storyFlags.endingTriggered && (
@@ -1233,7 +1294,9 @@ export const GameCanvas: React.FC = () => {
                 touchDirectionRef.current = dir;
               }}
               onInteract={triggerInteraction}
-              canInteract={activeInteractable !== null}
+              canInteract={activeInteractable !== null || inspectedObject !== null}
+              interactLabel={getActionLabel(activeInteractable, inspectedObject !== null)}
+              visible={isTouchDevice}
             />
           )}
       </div>
@@ -1253,21 +1316,29 @@ export const GameCanvas: React.FC = () => {
               : 'ROOM 217 — ACT 1: INVESTIGATION'}
           </span>
           <span className="text-[#453c33] hidden sm:inline">&bull;</span>
-          <span className="text-[#a49685]">Move: [W, A, S, D] / [Arrows]</span>
+          <span className="text-[#a49685] hidden sm:inline">Move: [W, A, S, D] / [Arrows]</span>
           <span className="text-[#453c33] hidden sm:inline">&bull;</span>
-          <span className="text-[#a49685]">Inspect: [E] / [Space]</span>
+          <span className="text-[#a49685] hidden sm:inline">Inspect: [E] / [Space]</span>
           {gameState.storyFlags.diaryDiscovered && (
             <>
               <span className="text-[#453c33] hidden sm:inline">&bull;</span>
-              <span className="text-[#d4aa50]">Diary: [J]</span>
+              <span className="text-[#d4aa50] hidden sm:inline">Diary: [J]</span>
             </>
           )}
           {gameState.storyFlags.phoneUnlocked && (
             <>
               <span className="text-[#453c33] hidden sm:inline">&bull;</span>
-              <span className="text-[#80cbc4]">Phone: [P]</span>
+              <span className="text-[#80cbc4] hidden sm:inline">Phone: [P]</span>
             </>
           )}
+          <span className="text-[#453c33] hidden sm:inline">&bull;</span>
+          <button
+            type="button"
+            onClick={() => setIsTouchDevice((prev) => !prev)}
+            className="text-[11px] text-[#9c8973] hover:text-[#e0cfba] border border-[#3e3226] px-2 py-0.5 rounded-xs transition-colors cursor-pointer touch-manipulation"
+          >
+            {isTouchDevice ? '📱 Touch Controls: ON' : '📱 Touch Controls: OFF'}
+          </button>
           <span className="text-[#453c33] hidden sm:inline">&bull;</span>
           <span className="text-[#7d7162]">Toggle Debug: [~]</span>
         </div>

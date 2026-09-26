@@ -35,18 +35,26 @@ export const OpeningSequence: React.FC<OpeningSequenceProps> = ({ onComplete }) 
   }, [stage, onComplete]);
 
   return (
-    <div className="absolute inset-0 bg-[#070709] flex flex-col items-center justify-center p-6 text-center select-none z-50 animate-fadeIn">
+    <div
+      className="absolute inset-0 bg-[#070709] flex flex-col items-center justify-center p-4 sm:p-6 text-center select-none z-50 animate-fadeIn cursor-pointer"
+      onClick={() => {
+        if (stage === 0) setStage(1);
+      }}
+    >
       {stage === 0 ? (
         <div className="space-y-4">
           <h1 className="text-3xl sm:text-4xl font-mono font-bold tracking-[0.25em] text-[#d4aa50] drop-shadow-md">
             ROOM 217
           </h1>
           <p className="text-[11px] font-mono text-[#5a4e40] tracking-widest animate-pulse">
-            PRESS [E] OR WAIT
+            TAP SCREEN OR PRESS [E]
           </p>
         </div>
       ) : (
-        <div className="max-w-lg w-full bg-[#12100e] border border-[#3e3226] p-6 sm:p-8 rounded-sm shadow-2xl text-left font-mono space-y-5 animate-fadeIn">
+        <div
+          className="max-w-lg w-full bg-[#12100e] border border-[#3e3226] p-5 sm:p-8 rounded-sm shadow-2xl text-left font-mono space-y-4 sm:space-y-5 animate-fadeIn cursor-default"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="border-b border-[#2e241b] pb-2">
             <h2 className="text-lg sm:text-xl font-bold tracking-widest text-[#d4aa50]">
               WELCOME, NEO.
@@ -65,13 +73,14 @@ export const OpeningSequence: React.FC<OpeningSequenceProps> = ({ onComplete }) 
             </p>
           </div>
 
-          <div className="pt-3 border-t border-[#2a2119] flex justify-between items-center text-xs">
-            <span className="text-[#645849]">[E / Space] to Proceed</span>
+          <div className="pt-3 border-t border-[#2a2119] flex justify-between items-center text-xs gap-2">
+            <span className="text-[#645849] hidden sm:inline">[E / Space] to Proceed</span>
             <button
+              type="button"
               onClick={onComplete}
-              className="px-4 py-1.5 bg-[#251e18] hover:bg-[#392e24] border border-[#524434] text-[#e8dfd3] font-mono tracking-wider transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 bg-[#251e18] hover:bg-[#392e24] active:scale-95 border border-[#524434] text-[#e8dfd3] font-bold font-mono tracking-wider transition-all cursor-pointer rounded-xs touch-manipulation shadow-md text-center"
             >
-              Enter Hostel [E]
+              ENTER HOSTEL
             </button>
           </div>
         </div>

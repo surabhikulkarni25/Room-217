@@ -66,30 +66,39 @@ export const VisualInspectionView: React.FC<VisualInspectionViewProps> = ({
 
   return (
     <div
-      className="absolute inset-0 bg-black/75 backdrop-blur-[2px] flex items-center justify-center p-3 sm:p-5 z-40 animate-fadeIn"
+      className="fixed inset-0 bg-black/85 backdrop-blur-[3px] flex items-center justify-center p-3 sm:p-5 z-50 overflow-y-auto animate-fadeIn select-none"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[#141210] border-2 border-[#524434] shadow-2xl p-4 sm:p-5 text-[#dfd7cc] font-mono select-none"
+        className="relative w-full max-w-lg bg-[#141210] border-2 border-[#524434] shadow-2xl p-4 sm:p-5 text-[#dfd7cc] font-mono select-none my-auto max-h-[92vh] overflow-y-auto flex flex-col justify-between"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-[#362b21] pb-2 mb-3 sm:mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="inline-block w-2 h-2 bg-[#d4aa50]" />
-            <h3 className="text-sm sm:text-base font-bold text-[#d4aa50] uppercase tracking-wider">
+        <div className="flex items-center justify-between border-b border-[#362b21] pb-2 mb-3 sm:mb-4 gap-2">
+          <div className="flex items-center space-x-2 min-w-0">
+            <span className="inline-block w-2 h-2 bg-[#d4aa50] shrink-0" />
+            <h3 className="text-sm sm:text-base font-bold text-[#d4aa50] uppercase tracking-wider truncate">
               {interactable.inspectTitle}
             </h3>
           </div>
-          <span className="text-[11px] text-[#8c8071]">
-            [ESC / E] Close
-          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 bg-[#241d16] hover:bg-[#382c20] active:scale-95 border border-[#524434] text-[#d4aa50] hover:text-[#f4e8d8] text-xs font-bold tracking-wider rounded-xs flex items-center space-x-1.5 cursor-pointer touch-manipulation transition-colors shrink-0 shadow-sm"
+            aria-label="Close"
+          >
+            <span>✕</span>
+            <span>BACK</span>
+            <kbd className="hidden sm:inline-block bg-[#14100c] px-1 py-0.5 text-[9px] text-[#9c8a74] border border-[#3e3124] ml-1">
+              ESC
+            </kbd>
+          </button>
         </div>
 
         {/* Content Area: Visual + Narrative Text */}
         <div
           className={`flex ${
-            hasVisual ? 'flex-col sm:flex-row gap-4 items-center sm:items-start' : 'flex-col'
+            hasVisual ? 'flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start' : 'flex-col'
           }`}
         >
           {/* Close-Up Pixel Art Viewport */}
@@ -100,7 +109,7 @@ export const VisualInspectionView: React.FC<VisualInspectionViewProps> = ({
                   ref={canvasRef}
                   width={INSPECTION_CANVAS_SIZE}
                   height={INSPECTION_CANVAS_SIZE}
-                  className="w-32 h-32 sm:w-36 sm:h-36 [image-rendering:pixelated] [image-rendering:crisp-edges] block"
+                  className="w-28 h-28 sm:w-36 sm:h-36 [image-rendering:pixelated] [image-rendering:crisp-edges] block"
                 />
               </div>
               <span className="text-[9px] text-[#6b5c4c] mt-1 tracking-widest uppercase">
@@ -110,19 +119,23 @@ export const VisualInspectionView: React.FC<VisualInspectionViewProps> = ({
           )}
 
           {/* Narrative Inspection Text */}
-          <div className="flex-1 flex flex-col justify-between self-stretch min-h-[100px]">
+          <div className="flex-1 flex flex-col justify-between self-stretch min-h-[80px]">
             <div className="text-xs sm:text-sm leading-relaxed text-[#c7beaf] whitespace-pre-line">
               {interactable.inspectText}
             </div>
 
             {/* Footer Action */}
-            <div className="flex justify-end pt-3 mt-3 border-t border-[#261d15]">
+            <div className="flex justify-between items-center pt-3 mt-3 border-t border-[#261d15] gap-2">
+              <span className="text-[11px] text-[#7d6f5f] hidden sm:inline">
+                Press [E] or [ESC] to return
+              </span>
               <button
+                type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 text-xs bg-[#241d16] hover:bg-[#382c20] border border-[#524434] text-[#e8dfd3] transition-colors cursor-pointer flex items-center space-x-1.5"
+                className="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm bg-[#241d16] hover:bg-[#382c20] active:scale-95 border border-[#524434] text-[#e8dfd3] font-bold transition-all cursor-pointer flex items-center justify-center space-x-2 rounded-xs touch-manipulation shadow-md"
               >
-                <span>Continue</span>
-                <kbd className="bg-[#14100c] px-1 py-0.5 text-[10px] text-[#d4aa50] border border-[#3e3124]">
+                <span>CONTINUE / RETURN</span>
+                <kbd className="hidden sm:inline-block bg-[#14100c] px-1.5 py-0.5 text-[10px] text-[#d4aa50] border border-[#3e3124]">
                   E
                 </kbd>
               </button>

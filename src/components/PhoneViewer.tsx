@@ -94,22 +94,33 @@ export const PhoneViewer: React.FC<PhoneViewerProps> = ({ onClose }) => {
 
   return (
     <div
-      className="absolute inset-0 bg-black/85 backdrop-blur-[3px] flex items-center justify-center p-3 sm:p-6 z-50 animate-fadeIn select-none font-mono"
+      className="fixed inset-0 bg-black/85 backdrop-blur-[3px] flex items-center justify-center p-2 sm:p-6 z-50 overflow-y-auto animate-fadeIn select-none font-mono"
       onClick={onClose}
     >
       {/* Phone Handset Chassis */}
       <div
-        className="relative w-full max-w-[340px] bg-[#1a1c1d] border-4 border-[#35393d] rounded-2xl shadow-2xl p-3 sm:p-4 text-[#e0e6e8] flex flex-col items-center"
+        className="relative w-full max-w-[360px] bg-[#1a1c1d] border-4 border-[#35393d] rounded-2xl shadow-2xl p-3 sm:p-4 text-[#e0e6e8] flex flex-col items-center my-auto max-h-[94vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Handset Speaker & Front Sensor */}
-        <div className="w-full flex items-center justify-center space-x-3 mb-2">
-          <div className="w-2 h-2 rounded-full bg-[#111315] border border-[#262a2d]" />
-          <div className="w-12 h-1.5 rounded-full bg-[#111315] border border-[#262a2d]" />
+        {/* Top Handset Speaker & Close Button */}
+        <div className="w-full flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-[#111315] border border-[#262a2d]" />
+            <div className="w-12 h-1.5 rounded-full bg-[#111315] border border-[#262a2d]" />
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-2.5 py-1 bg-[#172226] hover:bg-[#25353c] active:scale-95 border border-[#2b3c43] text-[#80cbc4] hover:text-white text-xs font-bold rounded-xs flex items-center space-x-1 cursor-pointer touch-manipulation transition-colors shadow-sm"
+            aria-label="Close Phone"
+          >
+            <span>✕</span>
+            <span>BACK</span>
+          </button>
         </div>
 
         {/* LCD Screen Container */}
-        <div className="relative w-full bg-[#0c1214] border-2 border-[#1f282c] rounded-md overflow-hidden min-h-[380px] sm:min-h-[410px] flex flex-col justify-between shadow-inner">
+        <div className="relative w-full bg-[#0c1214] border-2 border-[#1f282c] rounded-md overflow-hidden min-h-[300px] sm:min-h-[410px] max-h-[70vh] flex flex-col justify-between shadow-inner">
           {/* Glass Spiderweb Crack Visual Overlay */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none z-30 opacity-40"
@@ -333,13 +344,15 @@ export const PhoneViewer: React.FC<PhoneViewerProps> = ({ onClose }) => {
           </div>
 
           {/* Screen Bottom App Bar / Dismissal Hint */}
-          <div className="w-full bg-[#080d0e] border-t border-[#1b262b] px-3 py-1.5 flex items-center justify-between text-[11px] text-[#78909c] z-20">
-            <span>[1/2/3] Tabs</span>
+          <div className="w-full bg-[#080d0e] border-t border-[#1b262b] px-3 py-2 flex items-center justify-between text-[11px] text-[#78909c] z-20 gap-2">
+            <span className="hidden sm:inline">[1/2/3] Tabs</span>
             <button
+              type="button"
               onClick={onClose}
-              className="px-2.5 py-0.5 bg-[#172226] hover:bg-[#25353c] border border-[#2b3c43] text-[#80cbc4] font-bold rounded-xs cursor-pointer text-xs"
+              className="w-full sm:w-auto px-4 py-2 bg-[#172226] hover:bg-[#25353c] active:scale-95 border border-[#2b3c43] text-[#80cbc4] font-bold rounded-xs cursor-pointer text-xs touch-manipulation flex items-center justify-center space-x-1 shadow-md"
             >
-              CLOSE [E]
+              <span>RETURN TO GAME</span>
+              <kbd className="hidden sm:inline-block text-[10px] text-[#546e7a]">[E]</kbd>
             </button>
           </div>
         </div>

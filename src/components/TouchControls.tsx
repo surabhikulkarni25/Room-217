@@ -1,100 +1,126 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Direction } from '../types/game';
 
 interface TouchControlsProps {
   onDirectionPress: (dir: Direction | null) => void;
   onInteract: () => void;
   canInteract: boolean;
+  interactLabel?: string;
+  visible?: boolean;
 }
 
 export const TouchControls: React.FC<TouchControlsProps> = ({
   onDirectionPress,
   onInteract,
   canInteract,
+  interactLabel = 'INTERACT',
+  visible = true,
 }) => {
+  const lastTouchTimeRef = useRef<number>(0);
+
+  if (!visible) return null;
+
+  // Prevent double triggers from synthetic click after touch
+  const handleTouchInteract = (e: React.TouchEvent | React.MouseEvent) => {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastTouchTimeRef.current < 250) return;
+    lastTouchTimeRef.current = now;
+    if (canInteract) {
+      onInteract();
+    }
+  };
+
+  const createDirectionHandlers = (dir: Direction) => ({
+    onTouchStart: (e: React.TouchEvent) => {
+      e.preventDefault();
+      onDirectionPress(dir);
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      e.preventDefault();
+      onDirectionPress(null);
+    },
+    onTouchCancel: (e: React.TouchEvent) => {
+      e.preventDefault();
+      onDirectionPress(null);
+    },
+    onPointerDown: (e: React.PointerEvent) => {
+      // Only handle touch/pen pointer events or left click
+      if (e.pointerType !== 'mouse' || e.button === 0) {
+        onDirectionPress(dir);
+      }
+    },
+    onPointerUp: () => onDirectionPress(null),
+    onPointerCancel: () => onDirectionPress(null),
+    onPointerLeave: () => onDirectionPress(null),
+  });
+
   return (
-    <div className="sm:hidden absolute bottom-3 left-0 right-0 px-4 flex justify-between items-end pointer-events-none z-20">
-      {/* Direction Pad */}
-      <div className="grid grid-cols-3 gap-1 pointer-events-auto bg-black/40 p-1.5 rounded-lg border border-zinc-800">
+    <div
+      className="absolute bottom-2 sm:bottom-3 left-0 right-0 px-3 sm:px-5 flex justify-between items-end pointer-events-none z-20 select-none [touch-action:none]"
+      aria-label="Touch Controls"
+    >
+      {/* Direction Pad (Left thumb) */}
+      <div className="grid grid-cols-3 gap-1 pointer-events-auto bg-black/60 backdrop-blur-[2px] p-1.5 sm:p-2 rounded-xl border border-zinc-700/80 shadow-2xl">
         <div />
         <button
-          className="w-10 h-10 bg-zinc-800/80 active:bg-zinc-700 text-zinc-300 font-bold rounded flex items-center justify-center text-sm"
-          onTouchStart={(e) => {
-            e.preventDefault();
-            onDirectionPress('up');
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            onDirectionPress(null);
-          }}
-          onMouseDown={() => onDirectionPress('up')}
-          onMouseUp={() => onDirectionPress(null)}
+          type="button"
+          {...createDirectionHandlers('up')}
+          aria-label="Move Up"
+          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
         >
           ▲
         </button>
         <div />
         <button
-          className="w-10 h-10 bg-zinc-800/80 active:bg-zinc-700 text-zinc-300 font-bold rounded flex items-center justify-center text-sm"
-          onTouchStart={(e) => {
-            e.preventDefault();
-            onDirectionPress('left');
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            onDirectionPress(null);
-          }}
-          onMouseDown={() => onDirectionPress('left')}
-          onMouseUp={() => onDirectionPress(null)}
+          type="button"
+          {...createDirectionHandlers('left')}
+          aria-label="Move Left"
+          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
         >
           ◀
         </button>
         <button
-          className="w-10 h-10 bg-zinc-800/80 active:bg-zinc-700 text-zinc-300 font-bold rounded flex items-center justify-center text-sm"
-          onTouchStart={(e) => {
-            e.preventDefault();
-            onDirectionPress('down');
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            onDirectionPress(null);
-          }}
-          onMouseDown={() => onDirectionPress('down')}
-          onMouseUp={() => onDirectionPress(null)}
+          type="button"
+          {...createDirectionHandlers('down')}
+          aria-label="Move Down"
+          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
         >
           ▼
         </button>
         <button
-          className="w-10 h-10 bg-zinc-800/80 active:bg-zinc-700 text-zinc-300 font-bold rounded flex items-center justify-center text-sm"
-          onTouchStart={(e) => {
-            e.preventDefault();
-            onDirectionPress('right');
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            onDirectionPress(null);
-          }}
-          onMouseDown={() => onDirectionPress('right')}
-          onMouseUp={() => onDirectionPress(null)}
+          type="button"
+          {...createDirectionHandlers('right')}
+          aria-label="Move Right"
+          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
         >
           ▶
         </button>
       </div>
 
-      {/* Interact Button */}
+      {/* Action / Interact Button (Right thumb) */}
       <div className="pointer-events-auto">
         <button
-          onClick={onInteract}
+          type="button"
+          onTouchStart={handleTouchInteract}
+          onClick={handleTouchInteract}
           disabled={!canInteract}
-          className={`w-14 h-14 rounded-full font-mono font-bold text-sm flex flex-col items-center justify-center border transition-all ${
+          aria-label={interactLabel}
+          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full font-mono font-bold text-xs flex flex-col items-center justify-center border-2 transition-all touch-manipulation select-none ${
             canInteract
-              ? 'bg-amber-600/90 text-amber-100 border-amber-400 shadow-lg shadow-amber-900/40 active:scale-95'
-              : 'bg-zinc-900/60 text-zinc-600 border-zinc-800'
+              ? 'bg-amber-600/95 active:bg-amber-500 text-amber-100 border-amber-300 shadow-2xl shadow-amber-900/60 active:scale-95 animate-pulse'
+              : 'bg-zinc-900/50 text-zinc-600 border-zinc-800/80 opacity-50 cursor-not-allowed'
           }`}
         >
-          <span>E</span>
-          <span className="text-[9px] font-normal">INSPECT</span>
+          <span className="text-sm font-extrabold tracking-wider leading-none">
+            {interactLabel.slice(0, 7)}
+          </span>
+          <span className="text-[9px] font-normal text-amber-200/80 mt-0.5 tracking-tighter">
+            [E / TAP]
+          </span>
         </button>
       </div>
     </div>
   );
 };
+
