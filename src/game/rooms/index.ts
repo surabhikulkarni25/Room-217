@@ -239,7 +239,7 @@ export function getRoom(
           id: 'displaced_chair',
           name: 'Displaced Chair',
           type: 'furniture',
-          rect: { x: 198, y: 94, width: 18, height: 20 },
+          rect: { x: 198, y: 124, width: 18, height: 20 },
         },
       ];
     }

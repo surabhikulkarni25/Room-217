@@ -35,7 +35,6 @@ import { RegisterViewer } from './RegisterViewer';
 import { Room214KeypadModal } from './Room214KeypadModal';
 import { OpeningSequence } from './OpeningSequence';
 import { EndingSequence } from './EndingSequence';
-import { ShadowFigureFaceCloseUp } from './ShadowFigureFaceCloseUp';
 import { TouchControls } from './TouchControls';
 import { VisualInspectionView } from './VisualInspectionView';
 
@@ -84,6 +83,7 @@ export const GameCanvas: React.FC = () => {
     x: number;
     y: number;
     timer: number;
+    revealFace?: boolean;
   } | null>(null);
 
   // Dedicated heartbeat sound controller reference for the final ending approach
@@ -99,11 +99,6 @@ export const GameCanvas: React.FC = () => {
     startTime: number;
     duration: number;
   } | null>(null);
-
-  // Shadow Figure face close-up brief blackout state
-  const [showShadowFigureCloseUp, setShowShadowFigureCloseUp] = useState(false);
-  const showShadowFigureCloseUpRef = useRef(showShadowFigureCloseUp);
-  showShadowFigureCloseUpRef.current = showShadowFigureCloseUp;
 
   // Backyard rain sound stop callback reference
   const backyardRainStopRef = useRef<(() => void) | null>(null);
@@ -395,6 +390,7 @@ export const GameCanvas: React.FC = () => {
             x: startX,
             y: startY,
             timer: 0,
+            revealFace: false, // Starts completely faceless
           };
 
           // Lift first blackout
@@ -411,7 +407,7 @@ export const GameCanvas: React.FC = () => {
           const hbController = startApproachingHeartbeatSound();
           heartbeatRef.current = hbController;
 
-          // Configure smooth deliberate approach toward player over 6.2s
+          // Configure slightly faster approach toward player over 4.4s (moderately faster, still deliberate & suspenseful)
           endingApproachRef.current = {
             active: true,
             startX,
@@ -419,7 +415,7 @@ export const GameCanvas: React.FC = () => {
             targetX,
             targetY,
             startTime: performance.now(),
-            duration: 6200,
+            duration: 4400,
           };
         }, 2000);
 
@@ -510,23 +506,8 @@ export const GameCanvas: React.FC = () => {
         // After 3.2s, lights return with the chair persistently moved
         setTimeout(() => {
           setGameState((current) => {
-            // Nudge player down if standing in the moved chair footprint
-            let playerPos = { ...current.player.position };
-            if (
-              playerPos.x >= 184 &&
-              playerPos.x <= 218 &&
-              playerPos.y >= 84 &&
-              playerPos.y <= 116
-            ) {
-              playerPos.y = 120;
-            }
-
             const resolvedState: GameState = {
               ...current,
-              player: {
-                ...current.player,
-                position: playerPos,
-              },
               storyFlags: {
                 ...current.storyFlags,
                 blackoutActive: false,
@@ -686,23 +667,6 @@ export const GameCanvas: React.FC = () => {
     setGameState(nextState);
   };
 
-  const handleShadowFaceComplete = useCallback(() => {
-    setShowShadowFigureCloseUp(false);
-    if (shadowFigureRef.current) {
-      shadowFigureRef.current = null;
-    }
-    const nextState: GameState = {
-      ...gameStateRef.current,
-      storyFlags: {
-        ...gameStateRef.current.storyFlags,
-        shadowFigureSeen: true,
-        endingTriggered: true,
-      },
-    };
-    gameStateRef.current = nextState;
-    setGameState(nextState);
-  }, []);
-
   const handleRestart = () => {
     stopBackyardProximityAudio();
     stopApproachingHeartbeatSound();
@@ -715,7 +679,6 @@ export const GameCanvas: React.FC = () => {
       backyardRainStopRef.current();
       backyardRainStopRef.current = null;
     }
-    setShowShadowFigureCloseUp(false);
     const initialState = createInitialGameState();
     gameStateRef.current = initialState;
     setGameState(initialState);
@@ -748,8 +711,7 @@ export const GameCanvas: React.FC = () => {
     const isBackyard = gameState.currentRoom === 'backyard';
     const isMuted =
       gameState.storyFlags.blackoutActive ||
-      gameState.storyFlags.endingTriggered ||
-      showShadowFigureCloseUp;
+      gameState.storyFlags.endingTriggered;
 
     if (isBackyard && !isMuted) {
       if (!backyardRainStopRef.current) {
@@ -774,20 +736,17 @@ export const GameCanvas: React.FC = () => {
     gameState.currentRoom,
     gameState.storyFlags.blackoutActive,
     gameState.storyFlags.endingTriggered,
-    showShadowFigureCloseUp,
   ]);
 
   // Duck ambient drone bed during full blackout events or ending sequence
   useEffect(() => {
     const isDucked =
       gameState.storyFlags.blackoutActive ||
-      gameState.storyFlags.endingTriggered ||
-      showShadowFigureCloseUp;
+      gameState.storyFlags.endingTriggered;
     duckAmbientDroneBed(isDucked);
   }, [
     gameState.storyFlags.blackoutActive,
     gameState.storyFlags.endingTriggered,
-    showShadowFigureCloseUp,
   ]);
 
   // Keyboard event listeners
@@ -805,7 +764,6 @@ export const GameCanvas: React.FC = () => {
         gameStateRef.current.storyFlags.openingActive ||
         gameStateRef.current.storyFlags.blackoutActive ||
         gameStateRef.current.storyFlags.endingTriggered ||
-        showShadowFigureCloseUpRef.current ||
         isDiaryOpenRef.current ||
         isPhoneOpenRef.current ||
         isRegisterOpenRef.current ||
@@ -927,7 +885,6 @@ export const GameCanvas: React.FC = () => {
         currentState.storyFlags.blackoutActive ||
         currentState.storyFlags.endingTriggered ||
         Boolean(endingApproachRef.current?.active) ||
-        showShadowFigureCloseUpRef.current ||
         isDiaryOpenRef.current ||
         isPhoneOpenRef.current ||
         isRegisterOpenRef.current ||
@@ -1019,14 +976,20 @@ export const GameCanvas: React.FC = () => {
         const approach = endingApproachRef.current;
         const elapsed = (performance.now() - approach.startTime) / 1000;
         const durationSec = approach.duration / 1000;
-        const progress = Math.min(1.0, Math.max(0, elapsed / durationSec));
+        const linearProgress = Math.min(1.0, Math.max(0, elapsed / durationSec));
 
-        // Smooth deliberate linear movement toward player
+        // Movement: slow at first, then moderately faster as urgency builds
+        const progress = Math.min(1.0, Math.pow(linearProgress, 1.18));
+
+        // Smooth movement toward player
         shadowFigureRef.current.x =
           approach.startX + (approach.targetX - approach.startX) * progress;
         shadowFigureRef.current.y =
           approach.startY + (approach.targetY - approach.startY) * progress;
         shadowFigureRef.current.alpha = 1.0;
+
+        // Midpoint Face Reveal (0% to 49% faceless, 50%+ face revealed looking into camera)
+        shadowFigureRef.current.revealFace = linearProgress >= 0.5;
 
         // Accelerate and intensify heartbeat audio as progress increases
         if (heartbeatRef.current) {
@@ -1049,7 +1012,7 @@ export const GameCanvas: React.FC = () => {
             shadowFigureRef.current.active = false;
           }
 
-          // PART 8: SECOND BLACKOUT
+          // PART 7: SECOND BLACKOUT
           // The screen cuts to pitch black
           const resolvedState: GameState = {
             ...gameStateRef.current,
@@ -1061,18 +1024,20 @@ export const GameCanvas: React.FC = () => {
           gameStateRef.current = resolvedState;
           setGameState(resolvedState);
 
-          // Brief pause in pitch black (~1.0s) then show CREEPY GREEN SNAKE EYES
+          // Darkness creates the suspense (~1.6s), then transition directly to the final hook line
           setTimeout(() => {
-            setGameState((curr) => ({
-              ...curr,
+            const nextState: GameState = {
+              ...gameStateRef.current,
               storyFlags: {
-                ...curr.storyFlags,
+                ...gameStateRef.current.storyFlags,
                 blackoutActive: false,
+                shadowFigureSeen: true,
+                endingTriggered: true,
               },
-            }));
-            gameStateRef.current.storyFlags.blackoutActive = false;
-            setShowShadowFigureCloseUp(true);
-          }, 1000);
+            };
+            gameStateRef.current = nextState;
+            setGameState(nextState);
+          }, 1600);
         }
       } else if (currentState.currentRoom === 'basement' && shadowFigureRef.current?.active) {
         // Basement Shadow Figure logic:
@@ -1099,8 +1064,7 @@ export const GameCanvas: React.FC = () => {
       if (
         currentState.currentRoom === 'backyard' &&
         !currentState.storyFlags.blackoutActive &&
-        !currentState.storyFlags.endingTriggered &&
-        !showShadowFigureCloseUpRef.current
+        !currentState.storyFlags.endingTriggered
       ) {
         // Ancient Well is at x: 182, y: 98, width: 58, height: 44. Center approx (211, 120)
         const wellDist = Math.hypot(newPosition.x - 211, newPosition.y - 120);
@@ -1146,11 +1110,6 @@ export const GameCanvas: React.FC = () => {
         {/* Opening Title Sequence Overlay */}
         {gameState.storyFlags.openingActive && (
           <OpeningSequence onComplete={handleOpeningComplete} />
-        )}
-
-        {/* Shadow Figure Face Close-Up (Brief second blackout beat) */}
-        {showShadowFigureCloseUp && (
-          <ShadowFigureFaceCloseUp onComplete={handleShadowFaceComplete} />
         )}
 
         {/* Final Ending Sequence Overlay */}
@@ -1268,8 +1227,7 @@ export const GameCanvas: React.FC = () => {
         {/* On-screen touch controls for mobile viewports */}
         {!gameState.storyFlags.openingActive &&
           !gameState.storyFlags.blackoutActive &&
-          !gameState.storyFlags.endingTriggered &&
-          !showShadowFigureCloseUp && (
+          !gameState.storyFlags.endingTriggered && (
             <TouchControls
               onDirectionPress={(dir) => {
                 touchDirectionRef.current = dir;

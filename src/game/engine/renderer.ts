@@ -21,7 +21,7 @@ export function renderGame(
   walkFrame: number,
   showDebug: boolean = false,
   storyFlags?: Record<string, any>,
-  shadowFigure?: { active: boolean; alpha: number; x: number; y: number } | null
+  shadowFigure?: { active: boolean; alpha: number; x: number; y: number; revealFace?: boolean } | null
 ): void {
   // If a blackout event is active, render complete darkness
   if (storyFlags?.blackoutActive) {
@@ -81,7 +81,13 @@ export function renderGame(
     drawPlayer(ctx, player, walkFrame);
     // 5. Shadow Figure if active
     if (shadowFigure?.active) {
-      drawShadowFigure(ctx, shadowFigure.x, shadowFigure.y, shadowFigure.alpha);
+      drawShadowFigure(
+        ctx,
+        shadowFigure.x,
+        shadowFigure.y,
+        shadowFigure.alpha,
+        shadowFigure.revealFace !== false
+      );
     }
     // 6. Rain streaks
     drawRainOverlay(ctx);
@@ -630,7 +636,7 @@ function drawRoomDecorAndObstacles(
 
   // If the first blackout displaced the chair into the room:
   if (storyFlags?.chairMoved) {
-    drawDisplacedChair(ctx, 198, 94);
+    drawDisplacedChair(ctx, 198, 124);
   }
 
   // Wall baseboard seam / open cavity beside the desk
@@ -1338,7 +1344,8 @@ function drawShadowFigure(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  alpha: number
+  alpha: number,
+  revealFace: boolean = true
 ): void {
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
@@ -1366,17 +1373,52 @@ function drawShadowFigure(
   ctx.ellipse(x + 7, y + 6, 5, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // The Defining Feature: Unnatural Faint Smile
-  // Pale porcelain crescent teeth line gleaming through pure blackness
-  ctx.fillStyle = '#f0f5f8';
-  ctx.fillRect(x + 5, y + 8, 4, 1);
-  ctx.fillRect(x + 4, y + 7, 1, 1);
-  ctx.fillRect(x + 9, y + 7, 1, 1);
+  // Face Reveal (midway through approach):
+  // When revealFace is false: completely dark, unreadable faceless humanoid silhouette.
+  // When revealFace is true: deeply disturbing supernatural face looking directly through the screen at the viewer with an unnatural creepy smile.
+  if (revealFace) {
+    // 1. Faint ashen death-pallor skin mask emerging from the void
+    ctx.fillStyle = 'rgba(165, 178, 185, 0.18)';
+    ctx.fillRect(x + 3, y + 3, 9, 8);
 
-  // Faint pale void eye pinpricks staring dead forward
-  ctx.fillStyle = 'rgba(230, 240, 248, 0.55)';
-  ctx.fillRect(x + 5, y + 4, 1, 1);
-  ctx.fillRect(x + 8, y + 4, 1, 1);
+    // 2. Sunken, cavernous orbital eye sockets
+    ctx.fillStyle = '#010203';
+    ctx.fillRect(x + 3, y + 3, 4, 4);
+    ctx.fillRect(x + 8, y + 3, 4, 4);
+
+    // 3. Direct Camera Eye Contact:
+    // Pale unblinking supernatural sclera staring straight out of the screen at the real viewer
+    ctx.fillStyle = 'rgba(238, 246, 252, 0.92)';
+    ctx.fillRect(x + 4, y + 4, 2, 2);
+    ctx.fillRect(x + 9, y + 4, 2, 2);
+
+    // Piercing needle pupils locked dead forward onto the viewer
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 5, y + 4, 1, 1);
+    ctx.fillRect(x + 9, y + 4, 1, 1);
+
+    // 4. Sunken gaunt cheek hollows
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    ctx.fillRect(x + 2, y + 7, 2, 3);
+    ctx.fillRect(x + 11, y + 7, 2, 3);
+
+    // 5. Deeply Disturbing Supernatural Smile:
+    // Unnaturally wide, cold porcelain grin curving slightly up toward the cheekbones
+    ctx.fillStyle = '#e8eff4';
+    ctx.fillRect(x + 3, y + 9, 9, 1);
+    ctx.fillRect(x + 2, y + 8, 1, 1);
+    ctx.fillRect(x + 12, y + 8, 1, 1);
+
+    // Dark separation inside the mouth
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 3, y + 8, 9, 1);
+
+    // Pale, unsettling teeth slivers
+    ctx.fillStyle = 'rgba(245, 250, 255, 0.95)';
+    [3, 5, 7, 9, 11].forEach((tx) => {
+      ctx.fillRect(x + tx, y + 8, 1, 1);
+    });
+  }
 
   ctx.restore();
 }
