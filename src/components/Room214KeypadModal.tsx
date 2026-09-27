@@ -75,15 +75,15 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-6 z-50 overflow-y-auto animate-fadeIn select-none"
+      className="absolute inset-0 bg-black/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-5 z-50 animate-fadeIn select-none"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xs bg-[#191512] border-4 border-[#3a2f24] shadow-2xl p-4 sm:p-5 text-[#d8c8b0] font-mono rounded-xs flex flex-col items-center my-auto max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-xs max-h-[95vh] bg-[#191512] border-4 border-[#3a2f24] shadow-2xl p-3 sm:p-5 text-[#d8c8b0] font-mono rounded-xs flex flex-col items-center overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="w-full flex items-center justify-between border-b border-[#443527] pb-2 mb-3 gap-2">
+        <div className="w-full flex items-center justify-between border-b border-[#443527] pb-2 mb-2">
           <div className="flex items-center space-x-1.5 text-xs text-[#d4aa50]">
             <span>🔒</span>
             <span className="font-bold tracking-wider">DOOR 214 PADLOCK</span>
@@ -91,15 +91,15 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-2.5 py-1 bg-[#251e18] hover:bg-[#3d3126] active:scale-95 border border-[#4a3a2b] text-[#d4aa50] text-xs font-bold rounded-xs cursor-pointer touch-manipulation transition-colors shadow-sm"
-            aria-label="Close Padlock"
+            aria-label="Close Keypad"
+            className="min-h-[36px] min-w-[36px] text-xs px-2 py-1 border border-[#4a3a2b] text-[#9c8973] hover:text-[#d8c8b0] hover:bg-[#2a2016] transition-colors cursor-pointer flex items-center justify-center active:scale-95"
           >
-            <span>✕ BACK</span>
+            ✕
           </button>
         </div>
 
         {/* Padlock Shackle Visual */}
-        <div className="w-16 h-8 sm:h-10 border-4 border-[#524436] rounded-t-full mb-1 border-b-0" />
+        <div className="w-14 sm:w-16 h-7 sm:h-9 border-4 border-[#524436] rounded-t-full mb-1 border-b-0" />
 
         {/* Padlock Body / Digits Display */}
         <div
@@ -109,7 +109,7 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
               : isUnlocked
               ? 'border-[#43a047] bg-[#1a2d1a]'
               : 'border-[#5e4b38]'
-          } p-3 rounded-xs flex flex-col items-center shadow-inner transition-colors duration-200`}
+          } p-2.5 rounded-xs flex flex-col items-center shadow-inner transition-colors duration-200`}
         >
           <div className="flex space-x-2 my-1">
             {[0, 1, 2, 3].map((index) => {
@@ -125,7 +125,7 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
             })}
           </div>
 
-          <p className="text-[10px] text-[#8a7663] mt-1 font-bold">
+          <p className="text-[10px] text-[#8a7663] mt-1 tracking-wide font-semibold">
             {error
               ? 'INCORRECT COMBINATION'
               : isUnlocked
@@ -134,15 +134,15 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
           </p>
         </div>
 
-        {/* Numeric Keypad Buttons */}
-        <div className="grid grid-cols-3 gap-2 mt-4 w-full">
+        {/* Numeric Keypad Buttons (min 48px height touch targets) */}
+        <div className="grid grid-cols-3 gap-2 mt-3 w-full">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
             <button
               key={num}
               type="button"
               onClick={() => handleDigit(num)}
               disabled={error || isUnlocked}
-              className="py-3 bg-[#251e18] hover:bg-[#3d3126] active:bg-[#1a140f] active:scale-95 border border-[#4f3d2f] text-base font-bold text-[#e0cfba] rounded-xs shadow transition-all cursor-pointer disabled:opacity-50 touch-manipulation"
+              className="min-h-[48px] bg-[#251e18] hover:bg-[#3d3126] active:bg-[#1a140f] border border-[#4f3d2f] text-base font-bold text-[#e0cfba] rounded-xs shadow transition-all cursor-pointer disabled:opacity-50 active:scale-95 flex items-center justify-center"
             >
               {num}
             </button>
@@ -151,7 +151,7 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
             type="button"
             onClick={handleDelete}
             disabled={error || isUnlocked || digits.length === 0}
-            className="py-3 bg-[#201813] hover:bg-[#33241b] active:bg-[#140e0a] active:scale-95 border border-[#443224] text-xs font-bold text-[#a68c72] rounded-xs shadow transition-all cursor-pointer disabled:opacity-40 touch-manipulation"
+            className="min-h-[48px] bg-[#201813] hover:bg-[#33241b] active:bg-[#140e0a] border border-[#443224] text-xs font-bold text-[#a68c72] rounded-xs shadow transition-all cursor-pointer disabled:opacity-40 active:scale-95 flex items-center justify-center"
           >
             DEL
           </button>
@@ -159,7 +159,7 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
             type="button"
             onClick={() => handleDigit('0')}
             disabled={error || isUnlocked}
-            className="py-3 bg-[#251e18] hover:bg-[#3d3126] active:bg-[#1a140f] active:scale-95 border border-[#4f3d2f] text-base font-bold text-[#e0cfba] rounded-xs shadow transition-all cursor-pointer disabled:opacity-50 touch-manipulation"
+            className="min-h-[48px] bg-[#251e18] hover:bg-[#3d3126] active:bg-[#1a140f] border border-[#4f3d2f] text-base font-bold text-[#e0cfba] rounded-xs shadow transition-all cursor-pointer disabled:opacity-50 active:scale-95 flex items-center justify-center"
           >
             0
           </button>
@@ -169,22 +169,15 @@ export const Room214KeypadModal: React.FC<Room214KeypadModalProps> = ({
               if (digits.length === 4) verifyCode(digits);
             }}
             disabled={error || isUnlocked || digits.length < 4}
-            className="py-3 bg-[#3a2d1d] hover:bg-[#52402b] active:bg-[#251c11] active:scale-95 border border-[#7a5e3a] text-xs font-bold text-[#d4aa50] rounded-xs shadow transition-all cursor-pointer disabled:opacity-40 touch-manipulation"
+            className="min-h-[48px] bg-[#3a2d1d] hover:bg-[#52402b] active:bg-[#251c11] border border-[#7a5e3a] text-xs font-bold text-[#d4aa50] rounded-xs shadow transition-all cursor-pointer disabled:opacity-40 active:scale-95 flex items-center justify-center"
           >
             ENTER
           </button>
         </div>
 
-        {/* Footer Return Button */}
-        <div className="w-full mt-3 pt-2 border-t border-[#3a2f24] flex justify-center">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2 bg-[#201813] hover:bg-[#33241b] active:scale-95 border border-[#4a3a2b] text-xs font-bold text-[#b5a28c] rounded-xs transition-colors cursor-pointer touch-manipulation"
-          >
-            CANCEL / RETURN
-          </button>
-        </div>
+        <p className="text-[10px] text-[#635343] mt-2.5 text-center">
+          Tap keypad numbers or type on keyboard
+        </p>
       </div>
     </div>
   );

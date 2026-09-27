@@ -103,49 +103,65 @@ export const GameCanvas: React.FC = () => {
   // Backyard rain sound stop callback reference
   const backyardRainStopRef = useRef<(() => void) | null>(null);
 
+  // Responsive window viewport & orientation tracking
+  const [windowSize, setWindowSize] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 800,
+    height: typeof window !== 'undefined' ? window.innerHeight : 600,
+  }));
+
+  const isPortrait = windowSize.height > windowSize.width;
+
+  // Touch capability detection & user toggle
+  const [isTouchDevice, setIsTouchDevice] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      window.matchMedia('(pointer: coarse)').matches
+    );
+  });
+
+  const [showTouchControls, setShowTouchControls] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      window.matchMedia('(pointer: coarse)').matches
+    );
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') {
+        setIsTouchDevice(true);
+        setShowTouchControls(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    window.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, []);
+
   // Debug overlay visibility & FPS
   const [showDebug, setShowDebug] = useState(false);
   const [fps, setFps] = useState(60);
 
   // Touch virtual direction input
   const touchDirectionRef = useRef<Direction | null>(null);
-
-  // Detect whether device supports touch (mobile phones, tablets, touchscreens)
-  const [isTouchDevice, setIsTouchDevice] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return (
-      'ontouchstart' in window ||
-      navigator.maxTouchPoints > 0 ||
-      Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
-    );
-  });
-
-  useEffect(() => {
-    const handleTouchDetected = () => {
-      setIsTouchDevice(true);
-    };
-    window.addEventListener('touchstart', handleTouchDetected, { passive: true, once: true });
-    return () => window.removeEventListener('touchstart', handleTouchDetected);
-  }, []);
-
-  // Compute concise action label for mobile/touch action button
-  const getActionLabel = (item: InteractableObject | null, isInspecting: boolean): string => {
-    if (isInspecting) return 'CLOSE';
-    if (!item) return 'INTERACT';
-    const p = item.prompt.trim().toUpperCase();
-    if (p.includes('ENTER')) return 'ENTER';
-    if (p.includes('OPEN')) return 'OPEN';
-    if (p.includes('READ')) return 'READ';
-    if (p.includes('INSPECT')) return 'INSPECT';
-    if (p.includes('EXAMINE')) return 'EXAMINE';
-    if (p.includes('LOOK')) return 'LOOK';
-    if (p.includes('VIEW')) return 'VIEW';
-    if (p.includes('CHECK')) return 'CHECK';
-    if (p.includes('PUSH')) return 'EXIT';
-    if (p.includes('TAKE')) return 'TAKE';
-    if (p.includes('POWER')) return 'ON';
-    return 'INTERACT';
-  };
 
   // Input keys tracking
   const keysRef = useRef<{
@@ -500,7 +516,6 @@ export const GameCanvas: React.FC = () => {
 
   const handleCloseInspection = () => {
     resumeAudioContext();
-    touchDirectionRef.current = null;
     const closedObject = inspectedObjectRef.current;
     setInspectedObject(null);
 
@@ -1133,10 +1148,29 @@ export const GameCanvas: React.FC = () => {
     };
   }, [showDebug]);
 
+  // Compute responsive frame dimensions
+  const frameStyle: React.CSSProperties = isPortrait
+    ? {
+        width: '100%',
+        maxWidth: 'min(calc(100vw - 12px), 560px)',
+        aspectRatio: '4 / 3',
+        maxHeight: showTouchControls ? 'min(50vh, 420px)' : '75vh',
+      }
+    : {
+        height: 'auto',
+        maxHeight: windowSize.height < 450 ? 'calc(100dvh - 8px)' : 'calc(100dvh - 44px)',
+        maxWidth: windowSize.height < 450 ? 'calc((100dvh - 8px) * 4 / 3)' : 'calc((100dvh - 44px) * 4 / 3)',
+        width: '100%',
+        aspectRatio: '4 / 3',
+      };
+
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#070709] p-2 sm:p-4 select-none overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#070709] p-1.5 sm:p-3 select-none overflow-hidden">
       {/* Game Screen Frame */}
-      <div className="relative w-full max-w-4xl aspect-[4/3] max-h-[85vh] bg-black border-2 sm:border-4 border-[#2c221a] shadow-2xl rounded-sm overflow-hidden flex items-center justify-center">
+      <div
+        style={frameStyle}
+        className="relative bg-black border-2 sm:border-4 border-[#2c221a] shadow-2xl rounded-sm overflow-hidden flex items-center justify-center shrink-0"
+      >
         {/* Crisp pixel-art canvas */}
         <canvas
           ref={canvasRef}
@@ -1160,25 +1194,18 @@ export const GameCanvas: React.FC = () => {
           <div className="absolute inset-0 bg-black z-30 pointer-events-none" />
         )}
 
-        {/* Interaction prompt bar (bottom of canvas) - Tappable on touch devices */}
+        {/* Minimal interaction prompt bar (bottom of canvas) */}
         {activeInteractable &&
           !inspectedObject &&
           !gameState.storyFlags.openingActive &&
           !gameState.storyFlags.blackoutActive &&
           !gameState.storyFlags.endingTriggered && (
-            <button
-              type="button"
-              onClick={triggerInteraction}
-              className="absolute bottom-20 sm:bottom-3 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1.5 bg-black/90 hover:bg-[#1a140e] active:scale-95 border border-[#d4aa50] text-[#e8dfd3] font-mono text-xs sm:text-sm tracking-wide rounded-sm shadow-xl flex items-center space-x-2 pointer-events-auto cursor-pointer z-20 touch-manipulation transition-transform"
-              aria-label={activeInteractable.prompt}
-            >
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/85 border border-[#d4aa50] text-[#e8dfd3] font-mono text-xs sm:text-sm tracking-wide rounded-sm shadow-md flex items-center space-x-2 pointer-events-none z-20">
               <span className="w-1.5 h-1.5 rounded-full bg-[#d4aa50] animate-pulse" />
               <span>
-                <span className="sm:hidden text-amber-300 font-bold">TAP:</span>
-                <span className="hidden sm:inline">Press <kbd className="bg-[#2a2219] px-1 py-0.5 border border-[#524434] text-amber-300 font-bold">E</kbd> to</span>
-                {' '}{activeInteractable.prompt}
+                Press <kbd className="bg-[#2a2219] px-1 py-0.5 border border-[#524434] text-amber-300 font-bold">E</kbd> to {activeInteractable.prompt}
               </span>
-            </button>
+            </div>
           )}
 
         {/* Visual Inspection Modal Dialog */}
@@ -1199,30 +1226,21 @@ export const GameCanvas: React.FC = () => {
         {/* Dedicated Friend's Diary Viewer Modal */}
         {isDiaryOpen && !gameState.storyFlags.endingTriggered && (
           <DiaryViewer
-            onClose={() => {
-              touchDirectionRef.current = null;
-              setIsDiaryOpen(false);
-            }}
+            onClose={() => setIsDiaryOpen(false)}
           />
         )}
 
         {/* Dedicated Friend's Phone Viewer Modal */}
         {isPhoneOpen && !gameState.storyFlags.endingTriggered && (
           <PhoneViewer
-            onClose={() => {
-              touchDirectionRef.current = null;
-              setIsPhoneOpen(false);
-            }}
+            onClose={() => setIsPhoneOpen(false)}
           />
         )}
 
         {/* Dedicated Register / Maintenance Log Modal */}
         {isRegisterOpen && !gameState.storyFlags.endingTriggered && (
           <RegisterViewer
-            onClose={() => {
-              touchDirectionRef.current = null;
-              setIsRegisterOpen(false);
-            }}
+            onClose={() => setIsRegisterOpen(false)}
           />
         )}
 
@@ -1230,16 +1248,13 @@ export const GameCanvas: React.FC = () => {
         {isKeypadOpen && !gameState.storyFlags.endingTriggered && (
           <Room214KeypadModal
             onSuccess={handleKeypadSuccess}
-            onClose={() => {
-              touchDirectionRef.current = null;
-              setIsKeypadOpen(false);
-            }}
+            onClose={() => setIsKeypadOpen(false)}
           />
         )}
 
-        {/* Quick-Access Bar (Diary & Phone) */}
+        {/* Quick-Access Bar (Diary, Phone & Touch Toggle) */}
         {!gameState.storyFlags.endingTriggered && (
-          <div className="absolute top-2 right-2 flex items-center space-x-2 z-30">
+          <div className="absolute top-2 right-2 flex items-center space-x-1.5 z-30">
             {gameState.storyFlags.diaryDiscovered &&
               !gameState.storyFlags.openingActive &&
               !gameState.storyFlags.blackoutActive &&
@@ -1248,12 +1263,11 @@ export const GameCanvas: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsDiaryOpen(true)}
-                  className="px-2.5 py-1.5 sm:py-1 bg-[#1c140d]/90 hover:bg-[#302216] border border-[#d4aa50] text-[#d4aa50] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer touch-manipulation transition-all active:scale-95 min-h-[36px]"
+                  className="min-h-[36px] px-2.5 py-1 bg-[#1c140d]/90 hover:bg-[#302216] border border-[#d4aa50] text-[#d4aa50] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer transition-all active:scale-95"
                   title="Open Friend's Diary (J)"
                 >
                   <span>📖</span>
-                  <span className="font-bold">Diary</span>
-                  <span className="hidden sm:inline font-bold">[J]</span>
+                  <span className="font-bold">Diary [J]</span>
                 </button>
               )}
 
@@ -1265,12 +1279,28 @@ export const GameCanvas: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsPhoneOpen(true)}
-                  className="px-2.5 py-1.5 sm:py-1 bg-[#121c1f]/90 hover:bg-[#1d2d32] border border-[#4db6ac] text-[#80cbc4] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer touch-manipulation transition-all active:scale-95 min-h-[36px]"
+                  className="min-h-[36px] px-2.5 py-1 bg-[#121c1f]/90 hover:bg-[#1d2d32] border border-[#4db6ac] text-[#80cbc4] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1.5 cursor-pointer transition-all active:scale-95"
                   title="Open Friend's Phone (P)"
                 >
                   <span>📱</span>
-                  <span className="font-bold">Phone</span>
-                  <span className="hidden sm:inline font-bold">[P]</span>
+                  <span className="font-bold">Phone [P]</span>
+                </button>
+              )}
+
+            {/* Touch Controls Toggle Button */}
+            {!gameState.storyFlags.openingActive &&
+              !gameState.storyFlags.blackoutActive && (
+                <button
+                  type="button"
+                  onClick={() => setShowTouchControls((prev) => !prev)}
+                  className="min-h-[36px] px-2 py-1 bg-[#12100d]/90 hover:bg-[#251e18] border border-[#483726] text-[#bdae9c] hover:text-[#e8dfd3] font-mono text-xs rounded-xs shadow-lg flex items-center space-x-1 cursor-pointer transition-all active:scale-95"
+                  title={showTouchControls ? 'Hide On-Screen Controls' : 'Show On-Screen Controls'}
+                  aria-label={showTouchControls ? 'Hide On-Screen Controls' : 'Show On-Screen Controls'}
+                >
+                  <span>{showTouchControls ? '🎮' : '⌨️'}</span>
+                  <span className="hidden sm:inline font-bold">
+                    {showTouchControls ? 'Touch ON' : 'Touch OFF'}
+                  </span>
                 </button>
               )}
           </div>
@@ -1285,8 +1315,10 @@ export const GameCanvas: React.FC = () => {
           onToggle={() => setShowDebug((prev) => !prev)}
         />
 
-        {/* On-screen touch controls for touch viewports */}
-        {!gameState.storyFlags.openingActive &&
+        {/* On-screen touch controls for landscape viewports (embedded in frame corners) */}
+        {!isPortrait &&
+          showTouchControls &&
+          !gameState.storyFlags.openingActive &&
           !gameState.storyFlags.blackoutActive &&
           !gameState.storyFlags.endingTriggered && (
             <TouchControls
@@ -1294,17 +1326,40 @@ export const GameCanvas: React.FC = () => {
                 touchDirectionRef.current = dir;
               }}
               onInteract={triggerInteraction}
-              canInteract={activeInteractable !== null || inspectedObject !== null}
-              interactLabel={getActionLabel(activeInteractable, inspectedObject !== null)}
-              visible={isTouchDevice}
+              canInteract={activeInteractable !== null}
+              actionPrompt={activeInteractable?.prompt}
+              isPortrait={false}
             />
           )}
       </div>
 
+      {/* On-screen touch controls deck for portrait viewports (positioned below canvas frame) */}
+      {isPortrait &&
+        showTouchControls &&
+        !gameState.storyFlags.openingActive &&
+        !gameState.storyFlags.blackoutActive &&
+        !gameState.storyFlags.endingTriggered && (
+          <div className="w-full max-w-md mt-1.5 shrink-0 pointer-events-auto">
+            <TouchControls
+              onDirectionPress={(dir) => {
+                touchDirectionRef.current = dir;
+              }}
+              onInteract={triggerInteraction}
+              canInteract={activeInteractable !== null}
+              actionPrompt={activeInteractable?.prompt}
+              isPortrait={true}
+            />
+          </div>
+        )}
+
       {/* Footer Instructions / Atmospheric Header */}
       {!gameState.storyFlags.endingTriggered && (
-        <div className="mt-3 text-center font-mono text-xs text-[#7d7162] flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-          <span>
+        <div
+          className={`text-center font-mono text-xs text-[#7d7162] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 ${
+            isPortrait ? 'mt-1' : 'mt-2'
+          } ${windowSize.height < 450 ? 'hidden' : 'block'}`}
+        >
+          <span className="font-semibold text-[#b8a996]">
             {gameState.currentRoom === 'corridor'
               ? 'ROOM 217 — HOSTEL CORRIDOR'
               : gameState.currentRoom === 'room214'
@@ -1331,16 +1386,6 @@ export const GameCanvas: React.FC = () => {
               <span className="text-[#80cbc4] hidden sm:inline">Phone: [P]</span>
             </>
           )}
-          <span className="text-[#453c33] hidden sm:inline">&bull;</span>
-          <button
-            type="button"
-            onClick={() => setIsTouchDevice((prev) => !prev)}
-            className="text-[11px] text-[#9c8973] hover:text-[#e0cfba] border border-[#3e3226] px-2 py-0.5 rounded-xs transition-colors cursor-pointer touch-manipulation"
-          >
-            {isTouchDevice ? '📱 Touch Controls: ON' : '📱 Touch Controls: OFF'}
-          </button>
-          <span className="text-[#453c33] hidden sm:inline">&bull;</span>
-          <span className="text-[#7d7162]">Toggle Debug: [~]</span>
         </div>
       )}
     </div>

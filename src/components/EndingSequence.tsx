@@ -41,9 +41,9 @@ export const EndingSequence: React.FC<EndingSequenceProps> = ({ onRestart }) => 
   }
 
   return (
-    <div className="absolute inset-0 bg-[#000000] flex flex-col items-center justify-center p-6 text-center select-none z-50">
+    <div className="absolute inset-0 bg-[#000000] flex flex-col items-center justify-center p-4 sm:p-6 text-center select-none z-50">
       {stage === 0 && (
-        <h1 className="text-lg sm:text-2xl md:text-3xl font-mono font-bold tracking-[0.22em] text-[#f4efe8] drop-shadow-xl max-w-2xl leading-relaxed animate-fadeIn uppercase">
+        <h1 className="text-base sm:text-2xl md:text-3xl font-mono font-bold tracking-[0.18em] sm:tracking-[0.22em] text-[#f4efe8] drop-shadow-xl max-w-2xl leading-relaxed animate-fadeIn uppercase px-2">
           YOU THOUGHT IT WAS OVER, DIDN'T YOU?
         </h1>
       )}

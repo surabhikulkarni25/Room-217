@@ -19,15 +19,17 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
   return (
     <div className="absolute top-2 left-2 z-30 font-mono text-[11px] select-none">
       <button
+        type="button"
         onClick={onToggle}
-        className="px-2 py-0.5 bg-black/75 text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded text-[10px] cursor-pointer"
+        className="min-h-[36px] px-2.5 py-1 bg-black/80 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 border border-zinc-700 rounded text-[11px] cursor-pointer shadow-md flex items-center space-x-1 active:scale-95"
         title="Toggle Debug View (~)"
       >
-        {isOpen ? 'Hide Debug [~]' : 'Debug [~]'}
+        <span>🛠️</span>
+        <span>{isOpen ? 'Hide Debug [~]' : 'Debug [~]'}</span>
       </button>
 
       {isOpen && (
-        <div className="mt-1.5 p-2.5 bg-black/90 border border-zinc-700 text-zinc-300 rounded shadow-lg max-w-xs space-y-1">
+        <div className="mt-1.5 p-2.5 bg-black/95 border border-zinc-700 text-zinc-300 rounded shadow-2xl max-w-xs max-h-[60vh] overflow-y-auto space-y-1">
           <div className="text-amber-400 font-semibold border-b border-zinc-800 pb-1 flex justify-between">
             <span>ENGINE DEBUG</span>
             <span className="text-zinc-400">{fps} FPS</span>

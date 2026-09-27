@@ -1,126 +1,157 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Direction } from '../types/game';
 
 interface TouchControlsProps {
   onDirectionPress: (dir: Direction | null) => void;
   onInteract: () => void;
   canInteract: boolean;
-  interactLabel?: string;
-  visible?: boolean;
+  actionPrompt?: string;
+  isPortrait?: boolean;
 }
 
 export const TouchControls: React.FC<TouchControlsProps> = ({
   onDirectionPress,
   onInteract,
   canInteract,
-  interactLabel = 'INTERACT',
-  visible = true,
+  actionPrompt,
+  isPortrait = false,
 }) => {
-  const lastTouchTimeRef = useRef<number>(0);
+  const activeDirRef = useRef<Direction | null>(null);
 
-  if (!visible) return null;
-
-  // Prevent double triggers from synthetic click after touch
-  const handleTouchInteract = (e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault();
-    const now = Date.now();
-    if (now - lastTouchTimeRef.current < 250) return;
-    lastTouchTimeRef.current = now;
-    if (canInteract) {
-      onInteract();
-    }
-  };
-
-  const createDirectionHandlers = (dir: Direction) => ({
-    onTouchStart: (e: React.TouchEvent) => {
-      e.preventDefault();
-      onDirectionPress(dir);
-    },
-    onTouchEnd: (e: React.TouchEvent) => {
-      e.preventDefault();
-      onDirectionPress(null);
-    },
-    onTouchCancel: (e: React.TouchEvent) => {
-      e.preventDefault();
-      onDirectionPress(null);
-    },
-    onPointerDown: (e: React.PointerEvent) => {
-      // Only handle touch/pen pointer events or left click
-      if (e.pointerType !== 'mouse' || e.button === 0) {
+  const setDirection = useCallback(
+    (dir: Direction | null) => {
+      if (activeDirRef.current !== dir) {
+        activeDirRef.current = dir;
         onDirectionPress(dir);
       }
     },
-    onPointerUp: () => onDirectionPress(null),
-    onPointerCancel: () => onDirectionPress(null),
-    onPointerLeave: () => onDirectionPress(null),
-  });
+    [onDirectionPress]
+  );
+
+  const handlePointerDown = (dir: Direction, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture fails
+    }
+    setDirection(dir);
+  };
+
+  const handlePointerUp = (dir: Direction, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+    if (activeDirRef.current === dir) {
+      setDirection(null);
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setDirection(null);
+  };
 
   return (
     <div
-      className="absolute bottom-2 sm:bottom-3 left-0 right-0 px-3 sm:px-5 flex justify-between items-end pointer-events-none z-20 select-none [touch-action:none]"
-      aria-label="Touch Controls"
+      className={`w-full flex items-end justify-between pointer-events-none z-30 select-none ${
+        isPortrait
+          ? 'py-2 px-3'
+          : 'absolute bottom-2 left-0 right-0 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]'
+      }`}
+      style={{ touchAction: 'none' }}
     >
-      {/* Direction Pad (Left thumb) */}
-      <div className="grid grid-cols-3 gap-1 pointer-events-auto bg-black/60 backdrop-blur-[2px] p-1.5 sm:p-2 rounded-xl border border-zinc-700/80 shadow-2xl">
-        <div />
+      {/* Direction Pad */}
+      <div
+        className="pointer-events-auto bg-[#120f0c]/90 border border-[#3e3022] p-1.5 rounded-xl shadow-2xl backdrop-blur-xs flex flex-col items-center justify-center"
+        style={{ touchAction: 'none' }}
+      >
+        {/* Up row */}
         <button
           type="button"
-          {...createDirectionHandlers('up')}
           aria-label="Move Up"
-          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
+          className="w-12 h-12 sm:w-13 sm:h-13 bg-[#221b14] active:bg-[#523d24] text-[#d4aa50] font-bold rounded-lg border border-[#483726] flex items-center justify-center text-lg shadow-md cursor-pointer transition-transform active:scale-90"
+          onPointerDown={(e) => handlePointerDown('up', e)}
+          onPointerUp={(e) => handlePointerUp('up', e)}
+          onPointerCancel={handlePointerCancel}
+          onContextMenu={(e) => e.preventDefault()}
         >
           ▲
         </button>
-        <div />
+
+        {/* Middle row: Left, Center Pivot, Right */}
+        <div className="flex items-center gap-1.5 my-1">
+          <button
+            type="button"
+            aria-label="Move Left"
+            className="w-12 h-12 sm:w-13 sm:h-13 bg-[#221b14] active:bg-[#523d24] text-[#d4aa50] font-bold rounded-lg border border-[#483726] flex items-center justify-center text-lg shadow-md cursor-pointer transition-transform active:scale-90"
+            onPointerDown={(e) => handlePointerDown('left', e)}
+            onPointerUp={(e) => handlePointerUp('left', e)}
+            onPointerCancel={handlePointerCancel}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            ◀
+          </button>
+
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#16120e] border border-[#2e2318] flex items-center justify-center pointer-events-none">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#3e3122]" />
+          </div>
+
+          <button
+            type="button"
+            aria-label="Move Right"
+            className="w-12 h-12 sm:w-13 sm:h-13 bg-[#221b14] active:bg-[#523d24] text-[#d4aa50] font-bold rounded-lg border border-[#483726] flex items-center justify-center text-lg shadow-md cursor-pointer transition-transform active:scale-90"
+            onPointerDown={(e) => handlePointerDown('right', e)}
+            onPointerUp={(e) => handlePointerUp('right', e)}
+            onPointerCancel={handlePointerCancel}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            ▶
+          </button>
+        </div>
+
+        {/* Down row */}
         <button
           type="button"
-          {...createDirectionHandlers('left')}
-          aria-label="Move Left"
-          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
-        >
-          ◀
-        </button>
-        <button
-          type="button"
-          {...createDirectionHandlers('down')}
           aria-label="Move Down"
-          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
+          className="w-12 h-12 sm:w-13 sm:h-13 bg-[#221b14] active:bg-[#523d24] text-[#d4aa50] font-bold rounded-lg border border-[#483726] flex items-center justify-center text-lg shadow-md cursor-pointer transition-transform active:scale-90"
+          onPointerDown={(e) => handlePointerDown('down', e)}
+          onPointerUp={(e) => handlePointerUp('down', e)}
+          onPointerCancel={handlePointerCancel}
+          onContextMenu={(e) => e.preventDefault()}
         >
           ▼
         </button>
-        <button
-          type="button"
-          {...createDirectionHandlers('right')}
-          aria-label="Move Right"
-          className="w-11 h-11 sm:w-13 sm:h-13 bg-zinc-800/90 active:bg-amber-600/60 active:border-amber-400 text-zinc-200 active:text-amber-200 font-bold rounded-lg border border-zinc-700 flex items-center justify-center text-base sm:text-lg transition-all touch-manipulation shadow-md"
-        >
-          ▶
-        </button>
       </div>
 
-      {/* Action / Interact Button (Right thumb) */}
-      <div className="pointer-events-auto">
+      {/* Action / Interact Button */}
+      <div className="pointer-events-auto flex flex-col items-center">
         <button
           type="button"
-          onTouchStart={handleTouchInteract}
-          onClick={handleTouchInteract}
-          disabled={!canInteract}
-          aria-label={interactLabel}
-          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full font-mono font-bold text-xs flex flex-col items-center justify-center border-2 transition-all touch-manipulation select-none ${
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onInteract();
+          }}
+          aria-label={canInteract ? `Interact: ${actionPrompt || 'Inspect'}` : 'Interact'}
+          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full font-mono font-bold flex flex-col items-center justify-center border-2 transition-all cursor-pointer shadow-2xl active:scale-90 ${
             canInteract
-              ? 'bg-amber-600/95 active:bg-amber-500 text-amber-100 border-amber-300 shadow-2xl shadow-amber-900/60 active:scale-95 animate-pulse'
-              : 'bg-zinc-900/50 text-zinc-600 border-zinc-800/80 opacity-50 cursor-not-allowed'
+              ? 'bg-[#6b4c19] text-[#fff2cc] border-[#d4aa50] shadow-[0_0_20px_rgba(212,170,80,0.55)] ring-2 ring-[#d4aa50]/40 animate-pulse'
+              : 'bg-[#18130e]/85 text-[#73634e] border-[#3a2d1f]'
           }`}
+          style={{ touchAction: 'manipulation' }}
         >
-          <span className="text-sm font-extrabold tracking-wider leading-none">
-            {interactLabel.slice(0, 7)}
-          </span>
-          <span className="text-[9px] font-normal text-amber-200/80 mt-0.5 tracking-tighter">
-            [E / TAP]
+          <span className="text-base sm:text-lg leading-none font-extrabold">E</span>
+          <span className="text-[10px] sm:text-[11px] font-mono tracking-wider uppercase mt-0.5 truncate max-w-[56px] text-center">
+            {canInteract ? actionPrompt || 'INSPECT' : 'ACTION'}
           </span>
         </button>
       </div>
     </div>
   );
 };
-

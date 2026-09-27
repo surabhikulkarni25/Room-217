@@ -18,17 +18,17 @@ export const RegisterViewer: React.FC<RegisterViewerProps> = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/85 backdrop-blur-[3px] flex items-center justify-center p-2 sm:p-6 z-50 overflow-y-auto animate-fadeIn select-none"
+      className="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-5 z-50 animate-fadeIn select-none"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg bg-[#1f1913] border-4 border-[#3a2c20] shadow-2xl p-3 sm:p-6 text-[#2a2219] font-mono rounded-xs my-auto max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-lg max-h-[94vh] flex flex-col bg-[#1f1913] border-4 border-[#3a2c20] shadow-2xl p-3 sm:p-5 text-[#2a2219] font-mono rounded-xs overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Binder Header */}
-        <div className="flex items-center justify-between border-b-2 border-[#4d3a2b] pb-2 mb-3 text-[#d4aa50] gap-2">
-          <div className="flex items-center space-x-2 min-w-0">
-            <span className="text-base sm:text-lg shrink-0">📋</span>
+        <div className="flex items-center justify-between border-b-2 border-[#4d3a2b] pb-2 mb-2 text-[#d4aa50]">
+          <div className="flex items-center space-x-2">
+            <span className="text-base sm:text-lg">📋</span>
             <span className="font-bold tracking-wider text-xs sm:text-sm truncate">
               HOSTEL 2ND FLOOR — MAINTENANCE LOG
             </span>
@@ -36,18 +36,17 @@ export const RegisterViewer: React.FC<RegisterViewerProps> = ({ onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 bg-[#2a1d12] hover:bg-[#3f2c1b] active:scale-95 border border-[#5a432f] text-[#d4aa50] hover:text-[#f5e8d5] text-xs font-bold rounded-xs flex items-center space-x-1 cursor-pointer touch-manipulation transition-colors shadow-sm shrink-0"
-            aria-label="Close Log"
+            aria-label="Close Logbook"
+            className="min-h-[38px] min-w-[38px] text-xs px-2.5 py-1 border border-[#5a432f] text-[#c4a060] hover:bg-[#342416] transition-colors cursor-pointer flex items-center justify-center active:scale-95"
           >
-            <span>✕</span>
-            <span>BACK</span>
+            ✕
           </button>
         </div>
 
         {/* Aged Parchment / Ledger Page */}
-        <div className="bg-[#ede4cb] border border-[#b8ab8b] p-3 sm:p-5 rounded-xs shadow-inner space-y-4 max-h-[60vh] sm:max-h-[65vh] overflow-y-auto">
+        <div className="bg-[#ede4cb] border border-[#b8ab8b] p-3 sm:p-4 rounded-xs shadow-inner space-y-3.5 max-h-[55vh] overflow-y-auto">
           {/* Header watermark */}
-          <div className="border-b border-[#c2b595] pb-2 text-center">
+          <div className="border-b border-[#c2b595] pb-1.5 text-center">
             <p className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-[#6d5b45] uppercase">
               The Grandview Hostel &bull; Floor 2 Maintenance Log
             </p>
@@ -65,7 +64,7 @@ export const RegisterViewer: React.FC<RegisterViewerProps> = ({ onClose }) => {
           </div>
 
           {/* Entry 2 - The crucial code entry */}
-          <div className="space-y-1 text-xs text-[#2a2219] leading-relaxed bg-[#e4dac0] p-2.5 border-l-2 border-[#8b6534]">
+          <div className="space-y-1 text-xs text-[#2a2219] leading-relaxed bg-[#e4dac0] p-2.5 border-l-3 border-[#8b6534]">
             <div className="flex justify-between items-center text-[11px] font-bold text-[#8b4d24] border-b border-[#d8ccaf] pb-0.5">
               <span>OCTOBER 19</span>
               <span>ROOM 214 REPAIR</span>
@@ -90,16 +89,15 @@ export const RegisterViewer: React.FC<RegisterViewerProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Footer info */}
-        <div className="mt-3.5 pt-2 border-t border-[#3a2c20] flex items-center justify-between text-xs text-[#8c7b69] gap-2">
-          <span className="hidden sm:inline">Notice Board Archive &bull; Floor 2</span>
+        {/* Footer info & Tap dismiss button */}
+        <div className="mt-3 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#8c7b69] gap-2">
+          <span>Notice Board Archive &bull; Pinned Record</span>
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2 bg-[#2a1d12] hover:bg-[#3f2c1b] active:scale-95 border border-[#5a432f] text-[#d4aa50] font-bold rounded-xs cursor-pointer touch-manipulation flex items-center justify-center space-x-1 shadow-md"
+            className="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-[#2a1e15] hover:bg-[#3a2c20] active:bg-[#1a120c] border border-[#5a432f] text-[#d4aa50] font-bold text-xs rounded-xs cursor-pointer transition-colors"
           >
-            <span>RETURN TO GAME</span>
-            <kbd className="hidden sm:inline-block text-[10px] text-[#8c7b69]">[E]</kbd>
+            DISMISS [E]
           </button>
         </div>
       </div>

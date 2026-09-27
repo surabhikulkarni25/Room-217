@@ -48,47 +48,46 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/85 backdrop-blur-[3px] flex items-center justify-center p-2 sm:p-6 z-50 overflow-y-auto animate-fadeIn select-none"
+      className="absolute inset-0 bg-black/85 backdrop-blur-[3px] flex items-center justify-center p-2 sm:p-5 z-50 animate-fadeIn select-none"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg bg-[#231a14] border-4 border-[#4a3625] shadow-2xl p-3 sm:p-6 text-[#2b221a] font-mono rounded-xs my-auto max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-lg max-h-[94vh] flex flex-col bg-[#231a14] border-4 border-[#4a3625] shadow-2xl p-3 sm:p-5 text-[#2b221a] font-mono rounded-xs overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Leather Notebook Outer Header */}
-        <div className="flex items-center justify-between border-b-2 border-[#5a432f] pb-2 mb-3 text-[#d4aa50] gap-2">
+        <div className="flex items-center justify-between border-b-2 border-[#5a432f] pb-2 mb-2 text-[#d4aa50]">
           <div className="flex items-center space-x-2">
             <span className="text-base sm:text-lg">📖</span>
             <span className="text-xs sm:text-sm font-bold tracking-widest uppercase">
-              Friend&apos;s Diary
+              Your Friend&apos;s Diary
             </span>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-[11px] text-[#9c846f] font-mono hidden sm:inline">
-              PAGE {currentPage + 1}/{totalPages}
+            <span className="text-[10px] sm:text-[11px] text-[#9c846f] font-mono">
+              PAGE {currentPage + 1} OF {totalPages}
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="px-2.5 py-1 bg-[#2f2218] hover:bg-[#433123] active:scale-95 border border-[#5a432f] text-[#d4aa50] hover:text-[#f4e8d8] text-xs font-bold rounded-xs flex items-center space-x-1 cursor-pointer touch-manipulation transition-colors shadow-sm"
               aria-label="Close Diary"
+              className="min-h-[38px] min-w-[38px] px-2 py-1 text-xs bg-[#1b140f] hover:bg-[#2c2018] border border-[#524434] text-[#d4aa50] font-bold rounded-xs cursor-pointer flex items-center justify-center"
             >
-              <span>✕</span>
-              <span>BACK</span>
+              ✕
             </button>
           </div>
         </div>
 
         {/* Aged Parchment Page Container */}
         <div
-          className={`relative p-3.5 sm:p-5 bg-[#e3d8c2] border-2 border-[#baaa8f] shadow-inner rounded-xs min-h-[200px] sm:min-h-[290px] max-h-[55vh] sm:max-h-none overflow-y-auto flex flex-col justify-between ${
+          className={`relative p-3.5 sm:p-5 bg-[#e3d8c2] border-2 border-[#baaa8f] shadow-inner rounded-xs min-h-[220px] sm:min-h-[280px] max-h-[58vh] overflow-y-auto flex flex-col justify-between ${
             page.damageType === 'charred' ? 'ring-1 ring-[#3a2010]' : ''
           }`}
           style={
             page.damageType === 'torn'
               ? {
                   clipPath:
-                    'polygon(0% 0%, 100% 0%, 100% 74%, 88% 78%, 76% 68%, 62% 86%, 48% 70%, 34% 90%, 18% 76%, 0% 86%)',
+                    'polygon(0% 0%, 100% 0%, 100% 80%, 88% 84%, 76% 76%, 62% 90%, 48% 78%, 34% 92%, 18% 82%, 0% 90%)',
                 }
               : undefined
           }
@@ -105,7 +104,7 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
           )}
 
           {/* Page Lines */}
-          <div className="space-y-3 z-10">
+          <div className="space-y-2.5 z-10">
             {page?.lines?.map((line, idx) => {
               if (!line) return null;
               if (line.style === 'heading') {
@@ -204,38 +203,36 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
           </div>
 
           {/* Page Bottom Accent / Notebook Detail */}
-          <div className="mt-4 pt-2 border-t border-[#c5b89a] flex justify-between items-center text-[10px] text-[#7a6b57] z-10">
+          <div className="mt-3 pt-2 border-t border-[#c5b89a] flex justify-between items-center text-[10px] text-[#7a6b57] z-10">
             <span className="tracking-wide">Room 217 Notebook</span>
             <span className="font-bold tracking-widest">{page.entryTitle}</span>
           </div>
         </div>
 
         {/* Navigation & Dismissal Controls */}
-        <div className="mt-3 sm:mt-4 flex items-center justify-between text-xs font-mono text-[#dcd1be] gap-2">
+        <div className="mt-3 flex items-center justify-between text-xs font-mono text-[#dcd1be] gap-2">
           {/* Previous Button */}
           <button
             type="button"
             onClick={handlePrev}
             disabled={currentPage === 0}
-            className={`px-3 py-2 border transition-colors flex items-center space-x-1.5 rounded-xs touch-manipulation active:scale-95 ${
+            className={`min-h-[44px] min-w-[72px] sm:min-w-[88px] px-3 py-2 border transition-colors flex items-center justify-center space-x-1.5 ${
               currentPage === 0
                 ? 'opacity-40 cursor-not-allowed border-[#423223] text-[#786450]'
-                : 'bg-[#2f2218] hover:bg-[#433123] border-[#5a432f] text-[#ecd8bd] cursor-pointer'
+                : 'bg-[#2f2218] hover:bg-[#433123] active:bg-[#1f1610] border-[#5a432f] text-[#ecd8bd] cursor-pointer'
             }`}
           >
             <span>◀</span>
             <span>PREV</span>
-            <kbd className="hidden sm:inline-block text-[10px] text-[#d4aa50]">[A]</kbd>
           </button>
 
           {/* Close Button */}
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-[#1b140f] hover:bg-[#2c2018] active:scale-95 border border-[#524434] text-[#d4aa50] font-bold tracking-wider transition-colors cursor-pointer rounded-xs touch-manipulation shadow-md flex items-center space-x-1"
+            className="min-h-[44px] px-4 py-2 bg-[#1b140f] hover:bg-[#2c2018] active:bg-[#120d09] border border-[#524434] text-[#d4aa50] font-bold tracking-wider transition-colors cursor-pointer"
           >
-            <span>CLOSE</span>
-            <kbd className="hidden sm:inline-block text-[10px] text-[#d4aa50]">[E]</kbd>
+            CLOSE [E]
           </button>
 
           {/* Next Button */}
@@ -243,14 +240,13 @@ export const DiaryViewer: React.FC<DiaryViewerProps> = ({
             type="button"
             onClick={handleNext}
             disabled={currentPage === totalPages - 1}
-            className={`px-3 py-2 border transition-colors flex items-center space-x-1.5 rounded-xs touch-manipulation active:scale-95 ${
+            className={`min-h-[44px] min-w-[72px] sm:min-w-[88px] px-3 py-2 border transition-colors flex items-center justify-center space-x-1.5 ${
               currentPage === totalPages - 1
                 ? 'opacity-40 cursor-not-allowed border-[#423223] text-[#786450]'
-                : 'bg-[#2f2218] hover:bg-[#433123] border-[#5a432f] text-[#ecd8bd] cursor-pointer'
+                : 'bg-[#2f2218] hover:bg-[#433123] active:bg-[#1f1610] border-[#5a432f] text-[#ecd8bd] cursor-pointer'
             }`}
           >
             <span>NEXT</span>
-            <kbd className="hidden sm:inline-block text-[10px] text-[#d4aa50]">[D]</kbd>
             <span>▶</span>
           </button>
         </div>

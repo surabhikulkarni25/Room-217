@@ -76,18 +76,18 @@ export const PoemSequence: React.FC<PoemSequenceProps> = ({ onRestart }) => {
   const isFinalLine = Boolean(currentLine?.isFinal);
 
   return (
-    <div className="absolute inset-0 bg-black flex flex-col items-center justify-center p-6 text-center select-none z-50 animate-fadeIn">
+    <div className="absolute inset-0 bg-black flex flex-col items-center justify-center p-4 sm:p-6 text-center select-none z-50 animate-fadeIn">
       <div
-        className={`transition-opacity duration-700 max-w-2xl px-4 ${
+        className={`transition-opacity duration-700 max-w-2xl px-2 sm:px-4 ${
           isFading ? 'opacity-0' : 'opacity-100'
         }`}
       >
         {isFinalLine ? (
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-mono font-bold tracking-[0.2em] text-[#d4aa50] drop-shadow-[0_0_15px_rgba(212,170,80,0.45)] leading-relaxed animate-pulse">
+          <h2 className="text-base sm:text-2xl md:text-3xl font-mono font-bold tracking-[0.16em] sm:tracking-[0.2em] text-[#d4aa50] drop-shadow-[0_0_15px_rgba(212,170,80,0.45)] leading-relaxed animate-pulse">
             {currentLine?.text ?? ''}
           </h2>
         ) : (
-          <p className="text-base sm:text-lg md:text-xl font-mono text-[#dcd4c8] tracking-[0.14em] leading-relaxed drop-shadow-md">
+          <p className="text-sm sm:text-lg md:text-xl font-mono text-[#dcd4c8] tracking-[0.1em] sm:tracking-[0.14em] leading-relaxed drop-shadow-md">
             {currentLine?.text ?? ''}
           </p>
         )}
@@ -95,10 +95,11 @@ export const PoemSequence: React.FC<PoemSequenceProps> = ({ onRestart }) => {
 
       {/* Part 13 & 14: After the 5-second pause on Line 12, Play Again button appears */}
       {showPlayAgain && (
-        <div className="mt-10 flex flex-col items-center space-y-3 animate-fadeIn">
+        <div className="mt-8 sm:mt-10 flex flex-col items-center space-y-3 animate-fadeIn">
           <button
+            type="button"
             onClick={() => onRestart?.()}
-            className="text-xs sm:text-sm font-mono text-[#7d705f] hover:text-[#d4aa50] transition-colors border-b border-[#3d3226] hover:border-[#d4aa50] pb-1 cursor-pointer tracking-[0.2em] uppercase"
+            className="min-h-[48px] px-6 py-2.5 bg-[#1b1510] hover:bg-[#2e2319] active:bg-[#120d09] border border-[#d4aa50] text-[#d4aa50] font-mono text-xs sm:text-sm transition-all cursor-pointer tracking-[0.2em] uppercase rounded-xs shadow-lg active:scale-95"
           >
             Play Again
           </button>
